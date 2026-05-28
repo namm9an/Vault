@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useRef, useEffect, type ReactNode } from "react";
 
 type ToastType = "error" | "success" | "info";
 
@@ -14,11 +14,24 @@ const ToastCtx = createContext<{ toast: (type: ToastType, message: string) => vo
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<ToastMsg[]>([]);
+  const timerIds = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+
+  // Clear all pending timers on unmount to prevent setState-after-unmount leaks
+  useEffect(() => {
+    return () => {
+      timerIds.current.forEach((id) => clearTimeout(id));
+      timerIds.current.clear();
+    };
+  }, []);
 
   const toast = useCallback((type: ToastType, message: string) => {
     const id = Date.now();
     setToasts((prev) => [...prev, { id, type, message }]);
-    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 4000);
+    const timerId = setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+      timerIds.current.delete(timerId);
+    }, 4000);
+    timerIds.current.add(timerId);
   }, []);
 
   const colors: Record<ToastType, string> = {

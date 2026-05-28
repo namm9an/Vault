@@ -106,7 +106,7 @@ function GenerateModal({
             Cancel
           </button>
           <button
-            disabled={loading || !start || !end}
+            disabled={loading || !start || !end || start >= end}
             onClick={() => start && end && onGenerate(start, end)}
             className="flex-1 px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -215,8 +215,10 @@ export function DigestPage() {
   const user = me.data?.user;
   const isAdmin = user?.role === "ADMIN";
 
+  // L10: use generateDigest.data as fallback so the detail panel shows
+  // the newly generated digest immediately (before refetch completes).
   const selected = selectedId
-    ? (digests.data ?? []).find((d) => d.id === selectedId) ?? null
+    ? ((digests.data ?? []).find((d) => d.id === selectedId) ?? generateDigest.data ?? null)
     : null;
 
   async function handleGenerate(start: string, end: string) {

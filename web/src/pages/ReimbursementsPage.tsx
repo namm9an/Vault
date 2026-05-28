@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMe } from "@/features/auth/hooks";
+import { EmptyState } from "@/components/EmptyState";
 import {
   useReimbursements,
   useCreateReimbursement,
@@ -303,12 +304,10 @@ export function ReimbursementsPage() {
       {isLoading ? (
         <p className="text-neutral-500">Loading…</p>
       ) : reimbs.length === 0 ? (
-        <div className="border rounded-xl p-12 text-center bg-white">
-          <p className="text-neutral-500">No reimbursements yet.</p>
-          <p className="text-sm text-neutral-400 mt-1">
-            Submit your first expense reimbursement above.
-          </p>
-        </div>
+        <EmptyState
+          title="No reimbursements yet"
+          description="Submit your first expense reimbursement above."
+        />
       ) : (
         <div className="border rounded-lg overflow-hidden bg-white">
           <table className="w-full text-sm">

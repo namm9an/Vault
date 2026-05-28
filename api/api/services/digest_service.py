@@ -7,6 +7,7 @@ Handles weekly spend digest generation:
 - run_digest_generation: full orchestration with idempotency guards
 - list_digests / get_digest: read layer
 """
+import asyncio
 import logging
 import smtplib
 from datetime import datetime, timedelta, timezone
@@ -277,24 +278,23 @@ def send_digest_email(digest: Digest, recipients: list[str]) -> None:
 
 
 # ---------------------------------------------------------------------------
-# run_digest_generation (full orchestration)
+# get_or_create_pending_digest — used by router to respond fast, schedule LLM in bg
 # ---------------------------------------------------------------------------
 
-async def run_digest_generation(
+async def get_or_create_pending_digest(
     scope: OrgScope,
     period_start: Any,
     period_end: Any,
 ) -> Digest:
-    """Generate a weekly digest for the org.
+    """Idempotency check + create/reset the PENDING digest row in one commit.
 
-    Idempotency:
-    - COMPLETED digest for same (org_id, period_start, period_end) → return immediately
-    - PENDING digest created within last 10 min → raise HTTP 409
+    Returns an existing COMPLETED digest immediately (caller should short-circuit).
+    Raises HTTP 409 if a PENDING digest was created within the last 10 minutes.
+    Otherwise creates/resets a PENDING row, writes AuditLog, commits, and returns it.
     """
     db = scope.db
     org_id = scope.org_id
 
-    # Check for existing COMPLETED digest (idempotent)
     existing_completed = (await db.execute(
         select(Digest).where(
             Digest.org_id == org_id,
@@ -304,10 +304,8 @@ async def run_digest_generation(
         )
     )).scalar_one_or_none()
     if existing_completed is not None:
-        logger.info("digest already completed for org %s, period %s–%s", org_id, period_start, period_end)
         return existing_completed
 
-    # Check for in-progress PENDING digest (within last 10 min)
     ten_min_ago = datetime.now(timezone.utc) - timedelta(minutes=10)
     existing_pending = (await db.execute(
         select(Digest).where(
@@ -324,8 +322,6 @@ async def run_digest_generation(
             detail="digest generation already in progress",
         )
 
-    # Create (or reuse stale PENDING/FAILED) digest row → PENDING
-    # First check for any existing row (stale PENDING or FAILED) to reuse
     existing_any = (await db.execute(
         select(Digest).where(
             Digest.org_id == org_id,
@@ -364,6 +360,32 @@ async def run_digest_generation(
     ))
     await db.commit()
     await db.refresh(digest)
+    return digest
+
+
+# ---------------------------------------------------------------------------
+# run_digest_generation (full orchestration)
+# ---------------------------------------------------------------------------
+
+async def run_digest_generation(
+    scope: OrgScope,
+    period_start: Any,
+    period_end: Any,
+) -> Digest:
+    """Generate a weekly digest for the org.
+
+    Idempotency:
+    - COMPLETED digest for same (org_id, period_start, period_end) → return immediately
+    - PENDING digest created within last 10 min → raise HTTP 409
+    """
+    db = scope.db
+    org_id = scope.org_id
+
+    # Idempotency check + PENDING row creation (shared with router fast-path)
+    digest = await get_or_create_pending_digest(scope, period_start, period_end)
+    if digest.status == DigestStatus.COMPLETED:
+        logger.info("digest already completed for org %s, period %s–%s", org_id, period_start, period_end)
+        return digest
 
     # Aggregate spend data
     aggregated = await aggregate_spend_data(scope, period_start, period_end)
@@ -425,7 +447,8 @@ async def run_digest_generation(
                 )
             )).scalars().all()
             recipients = [u.email for u in fm_users if u.email]
-            send_digest_email(digest, recipients)
+            # run_in_executor so smtplib.SMTP (blocking IO) doesn't stall the event loop
+            await asyncio.to_thread(send_digest_email, digest, recipients)
         except Exception as exc:  # noqa: BLE001
             logger.warning("failed to fetch recipients for digest email: %s", exc)
 

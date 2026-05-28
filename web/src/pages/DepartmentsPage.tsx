@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMe } from "@/features/auth/hooks";
+import { EmptyState } from "@/components/EmptyState";
 import {
   useDepartments,
   useBudgetStatus,
@@ -318,14 +319,14 @@ export function DepartmentsPage() {
       {isLoading ? (
         <p className="text-neutral-500">Loading…</p>
       ) : depts.length === 0 ? (
-        <div className="border rounded-xl p-12 text-center bg-white">
-          <p className="text-neutral-500">No departments yet.</p>
-          {isAdmin && (
-            <p className="text-sm text-neutral-400 mt-1">
-              Create a department to start tracking budgets.
-            </p>
-          )}
-        </div>
+        <EmptyState
+          title="No departments yet"
+          description={
+            isAdmin
+              ? "Create a department to start tracking budgets."
+              : "No departments have been created yet."
+          }
+        />
       ) : (
         <div className="border rounded-lg overflow-hidden bg-white">
           <table className="w-full text-sm">

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useMe } from "@/features/auth/hooks";
 import { useCards } from "@/features/cards/hooks";
+import { EmptyState } from "@/components/EmptyState";
 import {
   useTransactions,
   useTransaction,
@@ -555,15 +556,10 @@ export function TransactionsPage() {
         ) : error ? (
           <div className="py-16 text-center text-red-500 text-sm">Failed to load transactions.</div>
         ) : transactions.length === 0 ? (
-          <div className="py-16 text-center text-neutral-400 text-sm">
-            No transactions yet.{" "}
-            <button
-              onClick={() => setShowNewDialog(true)}
-              className="underline hover:text-neutral-700"
-            >
-              Create one
-            </button>
-          </div>
+          <EmptyState
+            title="No transactions yet"
+            description="Record your first spend transaction to get started."
+          />
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-neutral-50 border-b">

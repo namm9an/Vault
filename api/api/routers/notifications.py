@@ -72,6 +72,27 @@ async def unread_count_route(
     return {"count": int(count)}
 
 
+@router.post("/read-all", status_code=204)
+async def mark_all_read_route(
+    cu: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    # Must be registered BEFORE /{notification_id}/read so FastAPI does not
+    # try to parse the literal string "read-all" as a UUID.
+    unread = (await db.execute(
+        select(Notification).where(
+            Notification.user_id == cu.user_id,
+            Notification.org_id == cu.org_id,
+            Notification.read_at.is_(None),
+        )
+    )).scalars().all()
+    now = datetime.now(timezone.utc)
+    for notif in unread:
+        notif.read_at = now
+    if unread:
+        await db.commit()
+
+
 @router.post("/{notification_id}/read", status_code=204)
 async def mark_read_route(
     notification_id: UUID,
@@ -89,23 +110,4 @@ async def mark_read_route(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="notification not found")
     if notif.read_at is None:
         notif.read_at = datetime.now(timezone.utc)
-        await db.commit()
-
-
-@router.post("/read-all", status_code=204)
-async def mark_all_read_route(
-    cu: CurrentUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    unread = (await db.execute(
-        select(Notification).where(
-            Notification.user_id == cu.user_id,
-            Notification.org_id == cu.org_id,
-            Notification.read_at.is_(None),
-        )
-    )).scalars().all()
-    now = datetime.now(timezone.utc)
-    for notif in unread:
-        notif.read_at = now
-    if unread:
         await db.commit()

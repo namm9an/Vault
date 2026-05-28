@@ -7,7 +7,7 @@ digest_status enum already exists in the DB — create_type=False on SAEnum.
 """
 import enum
 import uuid
-from datetime import datetime, date as date_type
+from datetime import datetime, timezone, date as date_type
 
 from sqlalchemy import Column, String, Text, Date, ForeignKey
 from sqlalchemy import Enum as SAEnum
@@ -60,6 +60,6 @@ class Digest(Base):
     updated_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True),
         server_default=text("NOW()"),
-        onupdate=datetime.utcnow,
+        onupdate=lambda: datetime.now(timezone.utc),
         nullable=False,
     )

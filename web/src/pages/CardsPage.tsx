@@ -8,6 +8,7 @@ import {
   useCancelCard,
 } from "@/features/cards/hooks";
 import { useUsers } from "@/features/users/hooks";
+import { EmptyState } from "@/components/EmptyState";
 import type { Card, SpendCategory } from "@/types/api";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -241,7 +242,10 @@ export function CardsPage() {
       {isLoading ? (
         <p className="text-neutral-500">Loading…</p>
       ) : cards.length === 0 ? (
-        <p className="text-neutral-500">No cards yet.</p>
+        <EmptyState
+          title="No cards yet"
+          description="Issue a virtual card to get started."
+        />
       ) : (
         <div className="border rounded-lg overflow-hidden bg-white">
           <table className="w-full text-sm">
