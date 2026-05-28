@@ -9,6 +9,7 @@ import {
   useRejectTransaction,
   type TransactionFilters,
 } from "@/features/transactions/hooks";
+import { ReceiptUploader } from "@/components/ReceiptUploader";
 import type { PolicyVerdict, SpendCategory, Transaction, TransactionEvent, TransactionState } from "@/types/api";
 
 // ---------------------------------------------------------------------------
@@ -94,6 +95,7 @@ function NewTransactionDialog({ onClose }: { onClose: () => void }) {
   const [category, setCategory] = useState<SpendCategory>("OTHER");
   const [description, setDescription] = useState("");
   const [occurredAt, setOccurredAt] = useState("");
+  const [receiptId, setReceiptId] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -106,6 +108,7 @@ function NewTransactionDialog({ onClose }: { onClose: () => void }) {
       category,
       description: description || undefined,
       occurred_at: occurredAt ? new Date(occurredAt).toISOString() : undefined,
+      receipt_id: receiptId ?? undefined,
     });
     onClose();
   }
@@ -213,6 +216,12 @@ function NewTransactionDialog({ onClose }: { onClose: () => void }) {
             />
           </div>
 
+          {/* Receipt — optional upload before creating the transaction */}
+          <ReceiptUploader
+            onReceiptReady={(id) => setReceiptId(id)}
+            onClear={() => setReceiptId(null)}
+          />
+
           {errMsg && (
             <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{errMsg}</p>
           )}
@@ -281,7 +290,9 @@ function TransactionDetailDrawer({
   txnId: string;
   onClose: () => void;
 }) {
-  const { data: txnDetail, isLoading } = useTransaction(txnId);
+  // Poll every 2 s while the LLM policy engine is still running
+  const isPolicyPending = txnDetail?.state === "POLICY_CHECKED";
+  const { data: txnDetail, isLoading } = useTransaction(txnId, isPolicyPending ? 2000 : false);
   const { data: me } = useMe();
   const approve = useApproveTransaction();
   const reject = useRejectTransaction();
@@ -356,6 +367,16 @@ function TransactionDetailDrawer({
                   )}
                 </div>
               </div>
+
+              {/* POLICY_CHECKED in-progress indicator */}
+              {txnDetail.state === "POLICY_CHECKED" && (
+                <div className="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2">
+                  <div className="w-3 h-3 border-2 border-blue-400 border-t-blue-700 rounded-full animate-spin flex-shrink-0" />
+                  <p className="text-sm text-blue-800">
+                    AI policy engine is reviewing this transaction…
+                  </p>
+                </div>
+              )}
 
               {/* Policy result */}
               {txnDetail.latest_policy_result && (

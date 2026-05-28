@@ -31,6 +31,7 @@ export type TransactionCreatePayload = {
   description?: string;
   department_id?: string | null;
   occurred_at?: string;
+  receipt_id?: string;
 };
 
 // ---------------------------------------------------------------------------
@@ -63,7 +64,7 @@ export function useTransactions(filters?: TransactionFilters) {
   });
 }
 
-export function useTransaction(id: string | null) {
+export function useTransaction(id: string | null, refetchInterval?: number | false) {
   return useQuery({
     queryKey: txnKey(id ?? ""),
     queryFn: async (): Promise<TransactionWithEvents> => {
@@ -71,6 +72,7 @@ export function useTransaction(id: string | null) {
       return data;
     },
     enabled: !!id,
+    refetchInterval: refetchInterval ?? false,
   });
 }
 

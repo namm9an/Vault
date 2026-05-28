@@ -5,6 +5,7 @@ import { LoginPage } from "@/pages/LoginPage";
 import { SignupPage } from "@/pages/SignupPage";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { CardsPage } from "@/pages/CardsPage";
+import { PoliciesPage } from "@/pages/PoliciesPage";
 import { SettingsPage } from "@/pages/SettingsPage";
 import { TransactionsPage } from "@/pages/TransactionsPage";
 
@@ -30,6 +31,10 @@ export const router = createBrowserRouter([
   {
     path: "/cards",
     element: <ProtectedLayout><CardsPage /></ProtectedLayout>,
+  },
+  {
+    path: "/policies",
+    element: <ProtectedLayout><PoliciesPage /></ProtectedLayout>,
   },
   {
     path: "/settings",
