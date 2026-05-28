@@ -27,6 +27,7 @@ from api.deps import OrgScope
 from api.models.audit_log import AuditLog
 from api.models.card import Card, CardStatus
 from api.models.department import Department
+from api.models.receipt import Receipt
 from api.models.transaction import (
     Transaction,
     TransactionEvent,
@@ -157,7 +158,20 @@ async def create_transaction(scope: OrgScope, data: TransactionCreate) -> Transa
         if dept is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "department not found in this org")
 
-    # 5. Create the transaction.  Assign id explicitly so event rows can reference
+    # 5. If a receipt_id is provided, verify it belongs to this org (C4 — cross-org guard).
+    if data.receipt_id is not None:
+        receipt_row = (
+            await scope.db.execute(
+                select(Receipt).where(
+                    Receipt.id == data.receipt_id,
+                    Receipt.org_id == scope.org_id,
+                )
+            )
+        ).scalar_one_or_none()
+        if receipt_row is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "receipt not found in this org")
+
+    # 6. Create the transaction.  Assign id explicitly so event rows can reference
     #    txn.id before the DB INSERT is flushed (required in mock-DB tests).
     txn = Transaction(
         id=uuid4(),
@@ -176,10 +190,10 @@ async def create_transaction(scope: OrgScope, data: TransactionCreate) -> Transa
     )
     scope.db.add(txn)
 
-    # 6. Flush to obtain server-generated timestamps before writing events
+    # 7. Flush to obtain server-generated timestamps before writing events
     await scope.db.flush()
 
-    # 7. Write the initial INITIATED event (represents "transaction was created")
+    # 8. Write the initial INITIATED event (represents "transaction was created")
     scope.db.add(
         TransactionEvent(
             transaction_id=txn.id,
@@ -200,10 +214,10 @@ async def create_transaction(scope: OrgScope, data: TransactionCreate) -> Transa
         )
     )
 
-    # 8. Advance to POLICY_CHECKED — the ARQ worker will drive the next transition
+    # 9. Advance to POLICY_CHECKED — the ARQ worker will drive the next transition
     await transition(scope, txn, TransactionState.POLICY_CHECKED, triggered_by_system=True)
 
-    # 9. Audit log (M2)
+    # 10. Audit log (M2)
     scope.db.add(AuditLog(
         org_id=scope.org_id,
         actor_user_id=scope.user_id,
@@ -219,11 +233,11 @@ async def create_transaction(scope: OrgScope, data: TransactionCreate) -> Transa
         },
     ))
 
-    # 10. Commit — INITIATED + POLICY_CHECKED events + audit log land atomically
+    # 11. Commit — INITIATED + POLICY_CHECKED events + audit log land atomically
     await scope.db.commit()
     await scope.db.refresh(txn)
 
-    # 11. Enqueue the LLM policy-check job asynchronously
+    # 12. Enqueue the LLM policy-check job asynchronously
     pool = await create_pool(RedisSettings.from_dsn(get_settings().ARQ_REDIS_URL))
     await pool.enqueue_job("run_policy_check", txn_id=str(txn.id))
     await pool.aclose()
