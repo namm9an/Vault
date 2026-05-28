@@ -64,7 +64,7 @@ export function useTransactions(filters?: TransactionFilters) {
   });
 }
 
-export function useTransaction(id: string | null, refetchInterval?: number | false) {
+export function useTransaction(id: string | null) {
   return useQuery({
     queryKey: txnKey(id ?? ""),
     queryFn: async (): Promise<TransactionWithEvents> => {
@@ -72,7 +72,9 @@ export function useTransaction(id: string | null, refetchInterval?: number | fal
       return data;
     },
     enabled: !!id,
-    refetchInterval: refetchInterval ?? false,
+    // Auto-poll every 2 s while the ARQ policy engine is still running
+    refetchInterval: (query) =>
+      query.state.data?.state === "POLICY_CHECKED" ? 2000 : false,
   });
 }
 
