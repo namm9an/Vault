@@ -30,6 +30,11 @@ class Settings(BaseSettings):
     TIR_TIMEOUT_SECONDS: int = 60
 
     S3_ENDPOINT_URL: str = ""
+    # Public-facing URL for presigned URLs returned to the browser.
+    # For local dev with MinIO this is http://localhost:9000.
+    # For E2E Object Storage this is the same as S3_ENDPOINT_URL.
+    # When empty, presigned URLs use S3_ENDPOINT_URL as-is.
+    S3_PUBLIC_URL: str = ""
     S3_REGION: str = "ap-south-1"
     S3_BUCKET: str = "vault-receipts"
     S3_ACCESS_KEY: str = ""
