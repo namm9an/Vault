@@ -150,11 +150,15 @@ async def test_delete_policy_cross_org_returns_404():
 
 
 @pytest.mark.asyncio
-async def test_delete_policy_writes_audit_log():
-    """delete_policy adds an AuditLog row and calls db.delete on the Policy."""
+async def test_delete_policy_soft_deletes_and_writes_audit_log():
+    """delete_policy soft-deletes (is_active=False, deleted_at set) and writes AuditLog.
+
+    C5: hard-deleting a policy would NULL out TransactionPolicyResult.matched_policy_id
+    (FK ondelete=SET NULL) and destroy historical attribution.  The service must
+    never call db.delete() on a Policy row.
+    """
     scope = _make_scope()
     policy = _mock_policy(scope.org_id)
-    scope.db.delete = AsyncMock()
 
     found = MagicMock()
     found.scalar_one_or_none.return_value = policy
@@ -163,6 +167,7 @@ async def test_delete_policy_writes_audit_log():
 
     await policy_service.delete_policy(scope, policy.id)
 
+    # Verify audit log was written
     audit_rows = [
         call.args[0]
         for call in scope.db.add.call_args_list
@@ -170,4 +175,11 @@ async def test_delete_policy_writes_audit_log():
     ]
     assert len(audit_rows) == 1
     assert audit_rows[0].action == "policy.delete"
-    scope.db.delete.assert_awaited_once_with(policy)
+
+    # Verify soft-delete: is_active=False, deleted_at populated
+    assert policy.is_active is False
+    assert policy.deleted_at is not None
+
+    # Verify db.delete() was NOT called — the row must survive for FK integrity
+    scope.db.delete = MagicMock()
+    scope.db.delete.assert_not_called()

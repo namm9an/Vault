@@ -40,3 +40,4 @@ docs/
 graphify-out/
 *.md
 !README.md
+!PROBLEMS.md
