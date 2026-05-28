@@ -131,3 +131,77 @@ export type TransactionWithEvents = Transaction & {
   events: TransactionEvent[];
   latest_policy_result: TransactionPolicyResult | null;
 };
+
+// ---------------------------------------------------------------------------
+// Policies
+// ---------------------------------------------------------------------------
+
+export type Policy = {
+  id: string;
+  org_id: string;
+  text: string;
+  is_active: boolean;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+};
+
+// ---------------------------------------------------------------------------
+// Receipts
+// ---------------------------------------------------------------------------
+
+export type ReceiptStatus =
+  | "PENDING_UPLOAD"
+  | "PROCESSING"
+  | "COMPLETED"
+  | "NEEDS_REVIEW"
+  | "FAILED";
+
+export type Receipt = {
+  id: string;
+  org_id: string;
+  uploaded_by: string;
+  content_type: string;
+  object_key: string;
+  byte_size: number | null;
+  status: ReceiptStatus;
+  confidence: string | null;
+  extracted_data: Record<string, unknown> | null;
+  llm_error: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type UploadUrlResponse = {
+  receipt_id: string;
+  upload_url: string;
+  object_key: string;
+};
+
+// ---------------------------------------------------------------------------
+// Notifications
+// ---------------------------------------------------------------------------
+
+export type NotificationType =
+  | "POLICY_FLAGGED"
+  | "POLICY_BLOCKED"
+  | "APPROVAL_REQUESTED"
+  | "APPROVAL_GRANTED"
+  | "APPROVAL_REJECTED"
+  | "BUDGET_THRESHOLD"
+  | "DIGEST_READY"
+  | "RECEIPT_REVIEW_NEEDED";
+
+export type Notification = {
+  id: string;
+  org_id: string;
+  user_id: string;
+  type: NotificationType;
+  title: string;
+  body: string;
+  link: string | null;
+  payload: Record<string, unknown>;
+  read_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
