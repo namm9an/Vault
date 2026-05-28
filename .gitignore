@@ -39,3 +39,4 @@ redisdata/
 docs/
 graphify-out/
 *.md
+!README.md
