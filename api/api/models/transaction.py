@@ -99,9 +99,12 @@ class Transaction(Base):
     occurred_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True), nullable=False, server_default=text("NOW()"),
     )
-    # receipt_id column exists in the DB (baseline schema) but the Receipt ORM model
-    # is added in Phase 4.  Omitting the FK mapping here avoids a NoReferencedTableError
-    # at startup.  Phase 4 will re-add this once the Receipt model is registered.
+    # Phase 4: Receipt ORM model now exists — FK mapping restored.
+    receipt_id: Mapped[UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("receipts.id", ondelete="SET NULL"),
+        nullable=True,
+    )
     created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True), server_default=text("NOW()"), nullable=False,
     )
@@ -170,7 +173,12 @@ class TransactionPolicyResult(Base):
     verdict: Mapped[PolicyVerdict] = mapped_column(policy_verdict_pg, nullable=False)
     reason: Mapped[str] = mapped_column(Text, nullable=False)
     policy_matched: Mapped[str | None] = mapped_column(Text, nullable=True)
-    # matched_policy_id FK → policies is added in Phase 4 when the Policy ORM model exists
+    # Phase 4: Policy ORM model now exists — FK mapping restored.
+    matched_policy_id: Mapped[UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("policies.id", ondelete="SET NULL"),
+        nullable=True,
+    )
     requires_approval_from_role: Mapped[UserRole | None] = mapped_column(
         user_role_pg, nullable=True,
     )
