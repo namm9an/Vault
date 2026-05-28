@@ -6,6 +6,8 @@ const NAV_LINKS = [
   { to: "/", label: "Dashboard", exact: true },
   { to: "/transactions", label: "Transactions" },
   { to: "/cards", label: "Cards" },
+  { to: "/reimbursements", label: "Reimbursements" },
+  { to: "/departments", label: "Departments" },
   { to: "/policies", label: "Policies" },
   { to: "/settings", label: "Settings" },
 ];

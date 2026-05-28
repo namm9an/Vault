@@ -5,7 +5,9 @@ import { LoginPage } from "@/pages/LoginPage";
 import { SignupPage } from "@/pages/SignupPage";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { CardsPage } from "@/pages/CardsPage";
+import { DepartmentsPage } from "@/pages/DepartmentsPage";
 import { PoliciesPage } from "@/pages/PoliciesPage";
+import { ReimbursementsPage } from "@/pages/ReimbursementsPage";
 import { SettingsPage } from "@/pages/SettingsPage";
 import { TransactionsPage } from "@/pages/TransactionsPage";
 
@@ -39,5 +41,13 @@ export const router = createBrowserRouter([
   {
     path: "/settings",
     element: <ProtectedLayout><SettingsPage /></ProtectedLayout>,
+  },
+  {
+    path: "/reimbursements",
+    element: <ProtectedLayout><ReimbursementsPage /></ProtectedLayout>,
+  },
+  {
+    path: "/departments",
+    element: <ProtectedLayout><DepartmentsPage /></ProtectedLayout>,
   },
 ]);

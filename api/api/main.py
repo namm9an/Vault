@@ -9,8 +9,11 @@ from api.db.base import dispose_engine, get_engine
 from api.logging import setup_logging
 from api.routers.auth import router as auth_router
 from api.routers.cards import router as cards_router
+from api.routers.dashboard import router as dashboard_router
+from api.routers.departments import router as departments_router
 from api.routers.policies import router as policies_router
 from api.routers.receipts import router as receipts_router
+from api.routers.reimbursements import router as reimbursements_router
 from api.routers.transactions import router as transactions_router
 from api.routers.users import router as users_router
 
@@ -60,7 +63,10 @@ async def health() -> dict[str, str]:
 
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(cards_router, prefix="/api/v1")
+app.include_router(dashboard_router, prefix="/api/v1")
+app.include_router(departments_router, prefix="/api/v1")
 app.include_router(policies_router, prefix="/api/v1")
 app.include_router(receipts_router, prefix="/api/v1")
+app.include_router(reimbursements_router, prefix="/api/v1")
 app.include_router(transactions_router, prefix="/api/v1")
 app.include_router(users_router, prefix="/api/v1")

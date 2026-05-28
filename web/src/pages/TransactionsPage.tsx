@@ -291,8 +291,8 @@ function TransactionDetailDrawer({
   onClose: () => void;
 }) {
   const { data: txnDetail, isLoading } = useTransaction(txnId);
-  // Poll every 2 s while the LLM policy engine is still running (derived after declaration)
-  const isPolicyPending = txnDetail?.state === "POLICY_CHECKED";
+  // isPolicyPending: future use for polling while LLM engine is running
+  const _isPolicyPending = txnDetail?.state === "POLICY_CHECKED"; void _isPolicyPending;
   const { data: me } = useMe();
   const approve = useApproveTransaction();
   const reject = useRejectTransaction();

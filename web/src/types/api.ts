@@ -179,6 +179,100 @@ export type UploadUrlResponse = {
 };
 
 // ---------------------------------------------------------------------------
+// Reimbursements
+// ---------------------------------------------------------------------------
+
+export type ReimbursementStatus =
+  | "SUBMITTED"
+  | "POLICY_CHECKED"
+  | "APPROVED"
+  | "REJECTED"
+  | "PAID";
+
+export type Reimbursement = {
+  id: string;
+  org_id: string;
+  user_id: string;
+  department_id?: string;
+  amount: string;
+  currency: string;
+  category: SpendCategory;
+  description: string;
+  receipt_id?: string;
+  status: ReimbursementStatus;
+  decision_reason?: string;
+  decided_by?: string;
+  decided_at?: string;
+  paid_at?: string;
+  created_at: string;
+  updated_at: string;
+};
+
+// ---------------------------------------------------------------------------
+// Departments
+// ---------------------------------------------------------------------------
+
+export type Department = {
+  id: string;
+  org_id: string;
+  name: string;
+  monthly_budget: string;
+  budget_currency: string;
+  alert_threshold_pct: number;
+  manager_id?: string;
+};
+
+export type BudgetStatus = {
+  department_id: string;
+  department_name: string;
+  monthly_budget: string;
+  budget_currency: string;
+  spent: string;
+  remaining: string;
+  utilization_pct: number;
+  alert_threshold_pct: number;
+  is_over_threshold: boolean;
+};
+
+// ---------------------------------------------------------------------------
+// Dashboard
+// ---------------------------------------------------------------------------
+
+export type CategorySpend = {
+  category: string;
+  amount: string;
+  transaction_count: number;
+};
+
+export type DepartmentSpend = {
+  department_id: string;
+  department_name: string;
+  amount: string;
+};
+
+export type MerchantSpend = {
+  merchant: string;
+  amount: string;
+  count: number;
+};
+
+export type TimeseriesPoint = {
+  period: string;
+  amount: string;
+};
+
+export type DashboardSummary = {
+  total_spend: string;
+  transaction_count: number;
+  mom_delta_pct: number | null;
+  by_category: CategorySpend[];
+  by_department: DepartmentSpend[];
+  top_merchants: MerchantSpend[];
+  pending_approvals: number;
+  active_cards: number;
+};
+
+// ---------------------------------------------------------------------------
 // Notifications
 // ---------------------------------------------------------------------------
 

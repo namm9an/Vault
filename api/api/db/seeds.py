@@ -14,6 +14,7 @@ from api.deps import OrgScope
 from api.models.card import Card, CardStatus, SpendCategory
 from api.models.department import Department
 from api.models.organization import Organization
+from api.models.reimbursement import Reimbursement, ReimbursementStatus
 from api.models.user import User, UserRole
 from api.schemas.transaction import TransactionCreate
 from api.services import transaction_service
@@ -196,6 +197,50 @@ async def run() -> None:
             except Exception as exc:  # noqa: BLE001
                 print(f"  WARNING: failed to seed transaction '{merchant}': {exc}")
 
+        # ---------------------------------------------------- Reimbursements (Phase 5)
+        # Seed 3 demo reimbursements directly (no service — outside request context)
+        demo_reimbs = [
+            Reimbursement(
+                org_id=org.id,
+                user_id=carol_user.id,
+                department_id=mkt_dept.id,
+                amount=Decimal("1200.00"),
+                currency="INR",
+                category=SpendCategory.MEALS,
+                description="Team lunch — client meeting",
+                status=ReimbursementStatus.APPROVED,
+                decision_reason="Approved — within meal policy",
+                decided_by=admin_user.id,
+                decided_at=now - timedelta(days=3),
+            ),
+            Reimbursement(
+                org_id=org.id,
+                user_id=bob_user.id,
+                department_id=eng_dept.id,
+                amount=Decimal("850.00"),
+                currency="INR",
+                category=SpendCategory.TRAVEL,
+                description="Auto-rickshaw to client office",
+                status=ReimbursementStatus.SUBMITTED,
+            ),
+            Reimbursement(
+                org_id=org.id,
+                user_id=carol_user.id,
+                department_id=mkt_dept.id,
+                amount=Decimal("15000.00"),
+                currency="INR",
+                category=SpendCategory.SAAS,
+                description="Annual SaaS subscription renewal",
+                status=ReimbursementStatus.REJECTED,
+                decision_reason="Amount exceeds per-request limit — raise a PO instead",
+                decided_by=admin_user.id,
+                decided_at=now - timedelta(days=1),
+            ),
+        ]
+        for r in demo_reimbs:
+            db.add(r)
+        await db.commit()
+
         print("Seed complete.")
         print(f"  Org:          {org.name} (slug={org.slug})")
         print(f"  Password:     {DEMO_PASSWORD}")
@@ -204,6 +249,7 @@ async def run() -> None:
         print(f"  Departments:  {', '.join(d.name for d in dept_records)}")
         print(f"  Cards:        {len(cards)} seeded")
         print(f"  Transactions: {txn_count} seeded (5 CLEARED, 2 FLAGGED, 1 BLOCKED)")
+        print(f"  Reimbursements: {len(demo_reimbs)} seeded (1 APPROVED, 1 SUBMITTED, 1 REJECTED)")
 
 
 if __name__ == "__main__":
