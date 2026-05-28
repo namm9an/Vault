@@ -3,6 +3,7 @@
 All tests mock the DB session — no real DB connection required.
 Follows the same AsyncMock/MagicMock pattern as test_multitenancy.py.
 """
+import unittest.mock
 import uuid
 from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock
@@ -130,6 +131,8 @@ async def test_terminal_state_settled_raises_409():
 @pytest.mark.asyncio
 async def test_employee_create_own_card_txn_succeeds():
     """EMPLOYEE creating a transaction on their own ACTIVE card succeeds."""
+    from unittest.mock import patch
+
     scope = _make_scope(role="EMPLOYEE")
     card = _mock_card(scope.org_id, user_id=scope.user_id, status=CardStatus.ACTIVE)
 
@@ -146,7 +149,11 @@ async def test_employee_create_own_card_txn_succeeds():
         merchant="Café Coffee Day",
         category=SpendCategory.MEALS,
     )
-    result = await transaction_service.create_transaction(scope, payload)
+
+    mock_pool = AsyncMock()
+    with patch("api.services.transaction_service.create_pool", return_value=mock_pool):
+        result = await transaction_service.create_transaction(scope, payload)
+
     # Service returns the txn object (refreshed mock — just verify no exception)
     assert result is not None
 
@@ -257,7 +264,14 @@ async def test_create_txn_cross_org_card_returns_404():
 
 @pytest.mark.asyncio
 async def test_create_transaction_writes_events():
-    """create_transaction writes exactly 4 events: INITIATED, POLICY_CHECKED, APPROVED, CLEARED."""
+    """create_transaction writes exactly 2 events: INITIATED then POLICY_CHECKED.
+
+    Phase 4: the stub is gone.  The service commits after POLICY_CHECKED and
+    enqueues run_policy_check — further transitions (APPROVED/FLAGGED/BLOCKED)
+    happen inside that ARQ job, not synchronously here.
+    """
+    from unittest.mock import patch
+
     scope = _make_scope()
     card = _mock_card(scope.org_id, user_id=scope.user_id, status=CardStatus.ACTIVE)
 
@@ -274,22 +288,28 @@ async def test_create_transaction_writes_events():
         merchant="AWS",
         category=SpendCategory.SAAS,
     )
-    await transaction_service.create_transaction(scope, payload)
+
+    mock_pool = AsyncMock()
+    with patch("api.services.transaction_service.create_pool", return_value=mock_pool):
+        await transaction_service.create_transaction(scope, payload)
 
     # Inspect all add() calls — filter to TransactionEvent instances
     add_calls = scope.db.add.call_args_list
     event_adds = [c.args[0] for c in add_calls if isinstance(c.args[0], TransactionEvent)]
 
-    assert len(event_adds) == 4, f"Expected 4 events, got {len(event_adds)}"
+    assert len(event_adds) == 2, f"Expected 2 events, got {len(event_adds)}"
     assert event_adds[0].to_state == TransactionState.INITIATED
     assert event_adds[1].to_state == TransactionState.POLICY_CHECKED
-    assert event_adds[2].to_state == TransactionState.APPROVED
-    assert event_adds[3].to_state == TransactionState.CLEARED
 
-    # M5: all 4 events + policy result + audit log must land in exactly one commit
+    # M5: 2 events + audit log must land in exactly one commit before job is enqueued
     assert scope.db.commit.call_count == 1, (
         f"Expected 1 commit, got {scope.db.commit.call_count} — "
-        "create_transaction must commit once atomically"
+        "create_transaction must commit once before enqueuing the ARQ job"
+    )
+
+    # Verify the ARQ job was enqueued
+    mock_pool.enqueue_job.assert_awaited_once_with(
+        "run_policy_check", txn_id=unittest.mock.ANY
     )
 
 
