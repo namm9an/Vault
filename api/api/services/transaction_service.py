@@ -1,0 +1,413 @@
+"""Transaction service — state machine, CRUD, and policy stub."""
+from datetime import datetime, timezone
+from decimal import Decimal
+from uuid import UUID, uuid4
+
+from fastapi import HTTPException, status
+from sqlalchemy import select
+
+from api.deps import OrgScope
+from api.models.audit_log import AuditLog
+from api.models.card import Card, CardStatus
+from api.models.department import Department
+from api.models.transaction import (
+    PolicyVerdict,
+    Transaction,
+    TransactionEvent,
+    TransactionPolicyResult,
+    TransactionState,
+)
+from api.schemas.transaction import TransactionCreate, TransactionFilters
+
+# ---------------------------------------------------------------------------
+# State machine
+# ---------------------------------------------------------------------------
+
+LEGAL_TRANSITIONS: dict[TransactionState, set[TransactionState]] = {
+    TransactionState.INITIATED:       {TransactionState.POLICY_CHECKED},
+    TransactionState.POLICY_CHECKED:  {
+        TransactionState.APPROVED, TransactionState.FLAGGED, TransactionState.BLOCKED,
+    },
+    TransactionState.APPROVED:        {TransactionState.CLEARED},
+    TransactionState.FLAGGED:         {TransactionState.APPROVED, TransactionState.BLOCKED},
+    TransactionState.BLOCKED:         set(),   # terminal
+    TransactionState.CLEARED:         {TransactionState.SETTLED},
+    TransactionState.SETTLED:         set(),   # terminal
+}
+
+
+async def transition(
+    scope: OrgScope,
+    txn: Transaction,
+    to_state: TransactionState,
+    reason: str | None = None,
+    triggered_by_system: bool = False,
+) -> Transaction:
+    """Validate and apply a state transition.  Writes a TransactionEvent row.
+    Does NOT commit — caller is responsible for committing.
+    Event row is added to the session BEFORE txn.state is mutated (H1).
+    """
+    from_state = txn.state
+    if to_state not in LEGAL_TRANSITIONS[from_state]:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            f"illegal state transition: {from_state.value} → {to_state.value}",
+        )
+    # Add event BEFORE mutating state so both are in-session at the same time (H1)
+    event = TransactionEvent(
+        transaction_id=txn.id,
+        org_id=scope.org_id,
+        from_state=from_state,
+        to_state=to_state,
+        triggered_by_user=None if triggered_by_system else scope.user_id,
+        triggered_by_system=triggered_by_system,
+        reason=reason,
+        # Populate metadata with useful context (Low)
+        event_metadata={
+            "from": from_state.value if from_state else None,
+            "to": to_state.value,
+            "triggered_by": "system" if triggered_by_system else str(scope.user_id),
+        },
+    )
+    scope.db.add(event)
+    txn.state = to_state
+    return txn
+
+
+# ---------------------------------------------------------------------------
+# Internal helpers
+# ---------------------------------------------------------------------------
+
+async def _run_policy_stub(scope: OrgScope, txn: Transaction) -> PolicyVerdict:
+    """Demo policy stub — real LLM call added in Phase 4.
+
+    Heuristic (gives FM-approval and blocked paths reachable without real policies):
+      amount > ₹1,00,000  → BLOCKED
+      amount > ₹50,000    → FLAGGED (awaits FM approval)
+      otherwise           → APPROVED
+
+    Returns the PolicyVerdict so the caller can branch on it (C2 / H4).
+    """
+    if txn.amount > Decimal("100000"):
+        verdict = PolicyVerdict.BLOCKED
+        reason = "Amount exceeds ₹1,00,000 — auto-blocked (demo threshold)"
+        policy_matched = "Transactions above ₹1,00,000 require pre-approval (demo policy stub)"
+    elif txn.amount > Decimal("50000"):
+        verdict = PolicyVerdict.FLAGGED
+        reason = "Amount exceeds ₹50,000 — flagged for finance manager review (demo threshold)"
+        policy_matched = "Large transactions above ₹50,000 require FM approval (demo policy stub)"
+    else:
+        verdict = PolicyVerdict.APPROVED
+        reason = "No applicable policy (stub — Phase 4 will use live LLM policy engine)"
+        policy_matched = None
+
+    scope.db.add(TransactionPolicyResult(
+        org_id=scope.org_id,
+        transaction_id=txn.id,
+        verdict=verdict,
+        reason=reason,
+        policy_matched=policy_matched,
+        raw_llm_response={},
+        llm_model="stub",
+    ))
+    return verdict
+
+
+async def _load_transaction(
+    scope: OrgScope,
+    txn_id: UUID,
+    for_update: bool = False,
+) -> Transaction:
+    """Load a transaction scoped to this org.
+
+    Set for_update=True from approve/reject paths to acquire a row-level lock
+    and prevent concurrent approvals on the same FLAGGED transaction (H2).
+    """
+    stmt = select(Transaction).where(
+        Transaction.id == txn_id,
+        Transaction.org_id == scope.org_id,
+    )
+    if for_update:
+        stmt = stmt.with_for_update()
+    txn = (await scope.db.execute(stmt)).scalar_one_or_none()
+    if txn is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "transaction not found")
+    return txn
+
+
+# ---------------------------------------------------------------------------
+# Public service functions
+# ---------------------------------------------------------------------------
+
+async def create_transaction(scope: OrgScope, data: TransactionCreate) -> Transaction:
+    # 1. Validate card belongs to this org
+    card = (
+        await scope.db.execute(
+            select(Card).where(Card.id == data.card_id, Card.org_id == scope.org_id)
+        )
+    ).scalar_one_or_none()
+    if card is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "card not found in this org")
+
+    # 2. Validate card is ACTIVE
+    if card.status != CardStatus.ACTIVE:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            f"card is {card.status.value.lower()} — cannot create transaction on an inactive card",
+        )
+
+    # 3. EMPLOYEE may only create transactions on their own card.
+    #    Returns 404 (not 403) so the card's existence is not leaked (C1).
+    if scope.role.value == "EMPLOYEE" and card.user_id != scope.user_id:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND,
+            "card not found in this org",
+        )
+
+    # 4. Validate department belongs to this org if provided
+    if data.department_id is not None:
+        dept = (
+            await scope.db.execute(
+                select(Department).where(
+                    Department.id == data.department_id,
+                    Department.org_id == scope.org_id,
+                )
+            )
+        ).scalar_one_or_none()
+        if dept is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "department not found in this org")
+
+    # 5. Create the transaction.  Assign id explicitly so event rows can reference
+    #    txn.id before the DB INSERT is flushed (required in mock-DB tests).
+    txn = Transaction(
+        id=uuid4(),
+        org_id=scope.org_id,
+        user_id=card.user_id,   # transaction belongs to the cardholder
+        card_id=data.card_id,
+        department_id=data.department_id,
+        amount=data.amount,
+        currency=data.currency,
+        merchant=data.merchant,
+        category=data.category,
+        description=data.description,
+        occurred_at=data.occurred_at or datetime.now(timezone.utc),
+        state=TransactionState.INITIATED,
+    )
+    scope.db.add(txn)
+
+    # 6. Flush to obtain server-generated timestamps before writing events
+    await scope.db.flush()
+
+    # 7. Write the initial INITIATED event (represents "transaction was created")
+    scope.db.add(
+        TransactionEvent(
+            transaction_id=txn.id,
+            org_id=scope.org_id,
+            from_state=None,
+            to_state=TransactionState.INITIATED,
+            triggered_by_user=scope.user_id,
+            triggered_by_system=False,
+            reason="Transaction created",
+            event_metadata={
+                "from": None,
+                "to": TransactionState.INITIATED.value,
+                "triggered_by": str(scope.user_id),
+                "merchant": txn.merchant,
+                "amount": str(txn.amount),
+                "category": txn.category.value,
+            },
+        )
+    )
+
+    # 8. Advance to POLICY_CHECKED, run the policy engine (C2)
+    await transition(scope, txn, TransactionState.POLICY_CHECKED, triggered_by_system=True)
+    verdict = await _run_policy_stub(scope, txn)
+
+    # 9. Branch on policy verdict
+    if verdict == PolicyVerdict.APPROVED:
+        # APPROVED → CLEARED (happy path: 4 events total)
+        await transition(scope, txn, TransactionState.APPROVED, triggered_by_system=True)
+        await transition(scope, txn, TransactionState.CLEARED, triggered_by_system=True)
+    elif verdict == PolicyVerdict.FLAGGED:
+        # FLAGGED: stop and await FM approval (3 events total)
+        await transition(scope, txn, TransactionState.FLAGGED, triggered_by_system=True)
+    else:
+        # BLOCKED: terminal (3 events total)
+        await transition(scope, txn, TransactionState.BLOCKED, triggered_by_system=True)
+
+    # 10. Audit log (M2)
+    scope.db.add(AuditLog(
+        org_id=scope.org_id,
+        actor_user_id=scope.user_id,
+        action="transaction.create",
+        entity_type="transaction",
+        entity_id=txn.id,
+        log_metadata={
+            "amount": str(txn.amount),
+            "currency": txn.currency,
+            "merchant": txn.merchant,
+            "category": txn.category.value,
+            "final_state": txn.state.value,
+        },
+    ))
+
+    # 11. Single commit — all events + policy result + audit log land together
+    await scope.db.commit()
+    await scope.db.refresh(txn)
+    return txn
+
+
+async def list_transactions(
+    scope: OrgScope,
+    filters: TransactionFilters,
+) -> list[Transaction]:
+    q = select(Transaction).where(Transaction.org_id == scope.org_id)
+
+    # EMPLOYEE sees only their own transactions.
+    # filters.user_id is silently ignored for EMPLOYEE — only ADMIN/FM may filter
+    # by arbitrary user (M6 — prevents user_id bypass via query param).
+    if scope.role.value == "EMPLOYEE":
+        q = q.where(Transaction.user_id == scope.user_id)
+
+    # Optional filters
+    if filters.from_date:
+        q = q.where(Transaction.occurred_at >= filters.from_date)
+    if filters.to_date:
+        q = q.where(Transaction.occurred_at <= filters.to_date)
+    if filters.category:
+        q = q.where(Transaction.category == filters.category)
+    if filters.department_id:
+        q = q.where(Transaction.department_id == filters.department_id)
+    if filters.card_id:
+        q = q.where(Transaction.card_id == filters.card_id)
+    if filters.user_id and scope.role.value != "EMPLOYEE":
+        q = q.where(Transaction.user_id == filters.user_id)
+    if filters.state:
+        q = q.where(Transaction.state == filters.state)
+
+    # H3: bounded result set — default 50, max 200
+    q = q.order_by(Transaction.occurred_at.desc()).limit(filters.limit).offset(filters.offset)
+    result = await scope.db.execute(q)
+    return list(result.scalars().all())
+
+
+async def get_transaction(
+    scope: OrgScope,
+    txn_id: UUID,
+) -> tuple[Transaction, list[TransactionEvent], TransactionPolicyResult | None]:
+    # TODO (Phase 4): replace 3 round-trips with selectinload for events + policy result
+    txn = await _load_transaction(scope, txn_id)
+
+    # EMPLOYEE can only view their own transactions
+    if scope.role.value == "EMPLOYEE" and txn.user_id != scope.user_id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "transaction not found")
+
+    # Load events in chronological order
+    events = list(
+        (
+            await scope.db.execute(
+                select(TransactionEvent)
+                .where(TransactionEvent.transaction_id == txn_id)
+                .order_by(TransactionEvent.created_at.asc())
+            )
+        )
+        .scalars()
+        .all()
+    )
+
+    # Load the most recent policy result (if any)
+    policy_result = (
+        await scope.db.execute(
+            select(TransactionPolicyResult)
+            .where(TransactionPolicyResult.transaction_id == txn_id)
+            .order_by(TransactionPolicyResult.created_at.desc())
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+
+    return txn, events, policy_result
+
+
+async def approve_transaction(
+    scope: OrgScope,
+    txn_id: UUID,
+    reason: str,
+) -> Transaction:
+    # H2: SELECT FOR UPDATE prevents concurrent approvals on the same FLAGGED txn
+    txn = await _load_transaction(scope, txn_id, for_update=True)
+    if txn.state != TransactionState.FLAGGED:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            f"can only approve a FLAGGED transaction (current state: {txn.state.value})",
+        )
+    # FLAGGED → APPROVED → CLEARED
+    await transition(scope, txn, TransactionState.APPROVED, reason=reason)
+    await transition(scope, txn, TransactionState.CLEARED, triggered_by_system=True)
+
+    # Audit log (M2)
+    scope.db.add(AuditLog(
+        org_id=scope.org_id,
+        actor_user_id=scope.user_id,
+        action="transaction.approve",
+        entity_type="transaction",
+        entity_id=txn_id,
+        log_metadata={"reason": reason, "from_state": "FLAGGED", "to_state": "CLEARED"},
+    ))
+
+    await scope.db.commit()
+    await scope.db.refresh(txn)
+    return txn
+
+
+async def reject_transaction(
+    scope: OrgScope,
+    txn_id: UUID,
+    reason: str,
+) -> Transaction:
+    # H2: SELECT FOR UPDATE prevents concurrent rejects on the same FLAGGED txn
+    txn = await _load_transaction(scope, txn_id, for_update=True)
+    if txn.state != TransactionState.FLAGGED:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            f"can only reject a FLAGGED transaction (current state: {txn.state.value})",
+        )
+    # FLAGGED → BLOCKED (terminal)
+    await transition(scope, txn, TransactionState.BLOCKED, reason=reason)
+
+    # Audit log (M2)
+    scope.db.add(AuditLog(
+        org_id=scope.org_id,
+        actor_user_id=scope.user_id,
+        action="transaction.reject",
+        entity_type="transaction",
+        entity_id=txn_id,
+        log_metadata={"reason": reason, "from_state": "FLAGGED", "to_state": "BLOCKED"},
+    ))
+
+    await scope.db.commit()
+    await scope.db.refresh(txn)
+    return txn
+
+
+async def list_events(
+    scope: OrgScope,
+    txn_id: UUID,
+) -> list[TransactionEvent]:
+    txn = await _load_transaction(scope, txn_id)
+
+    # EMPLOYEE can only see events for their own transactions
+    if scope.role.value == "EMPLOYEE" and txn.user_id != scope.user_id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "transaction not found")
+
+    events = list(
+        (
+            await scope.db.execute(
+                select(TransactionEvent)
+                .where(TransactionEvent.transaction_id == txn_id)
+                .order_by(TransactionEvent.created_at.asc())
+            )
+        )
+        .scalars()
+        .all()
+    )
+    return events
