@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   AreaChart,
   Area,
@@ -103,7 +103,7 @@ function KpiCard({ label, value, sub }: KpiCardProps) {
 export function DashboardPage() {
   const me = useMe();
   const [rangeDays, setRangeDays] = useState(30);
-  const [fromDate, toDate] = getRangeDates(rangeDays);
+  const [fromDate, toDate] = useMemo(() => getRangeDates(rangeDays), [rangeDays]);
 
   const summary = useDashboardSummary(fromDate, toDate);
   const timeseries = useDashboardTimeseries(fromDate, toDate, "day");
@@ -272,7 +272,8 @@ export function DashboardPage() {
             </div>
           ) : (
             <div className="flex items-center gap-4">
-              <ResponsiveContainer width={160} height={160}>
+              <div style={{ width: 160, height: 160 }}>
+              <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={summary.data.by_category}
@@ -300,6 +301,7 @@ export function DashboardPage() {
                   />
                 </PieChart>
               </ResponsiveContainer>
+              </div>
               <div className="flex-1 space-y-1.5">
                 {summary.data.by_category.slice(0, 6).map((c) => (
                   <div key={c.category} className="flex items-center gap-2 text-sm">

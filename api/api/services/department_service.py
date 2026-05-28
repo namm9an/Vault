@@ -2,7 +2,10 @@
 
 Handles department CRUD and budget status calculation with Redis-deduped alerts.
 """
+import logging
 from datetime import datetime, timezone
+
+logger = logging.getLogger(__name__)
 from decimal import Decimal
 from uuid import UUID
 
@@ -118,13 +121,17 @@ async def get_budget_status(scope: OrgScope, dept_id: UUID) -> BudgetStatus:
     is_over_threshold = utilization_pct >= dept.alert_threshold_pct
 
     # Budget threshold alert — dedup with Redis SET NX EX 32 days (2764800s)
+    # Order: commit DB notification first, then set Redis key.
+    # If DB commit fails we never mark dedup as fired — retry will re-fire correctly.
+    # If Redis fails we still return the budget status — notification already committed.
     if is_over_threshold:
         month_key = first_of_month.strftime("%Y-%m")
         redis_key = f"budget_alert:{dept_id}:{month_key}"
         client = aioredis.from_url(settings.REDIS_URL)
         try:
-            fired = await client.set(redis_key, "1", nx=True, ex=2764800)
-            if fired:
+            # Probe Redis first (read-only) to skip the DB write if already deduped
+            already_fired = await client.get(redis_key)
+            if not already_fired:
                 await notify_all_fms(
                     db=scope.db,
                     org_id=scope.org_id,
@@ -136,6 +143,16 @@ async def get_budget_status(scope: OrgScope, dept_id: UUID) -> BudgetStatus:
                     ),
                 )
                 await scope.db.commit()
+                # DB committed — now mark dedup key (best-effort; failure = duplicate notif, not silent miss)
+                try:
+                    await client.set(redis_key, "1", nx=True, ex=2764800)
+                except Exception:  # noqa: BLE001
+                    logger.warning("budget_alert: Redis SET NX failed for key %s — dedup not recorded", redis_key)
+        except Exception:  # noqa: BLE001
+            logger.warning(
+                "budget_alert: Redis unavailable for dept %s — skipping threshold notification",
+                dept_id,
+            )
         finally:
             await client.aclose()
 

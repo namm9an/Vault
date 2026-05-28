@@ -20,7 +20,8 @@ router = APIRouter(prefix="/departments", tags=["departments"])
 @router.get("", response_model=list[DepartmentOut])
 async def list_route(
     scope: OrgScope = Depends(get_org_scope),
-    _=Depends(require_role(UserRole.ADMIN, UserRole.FINANCE_MANAGER)),
+    # All roles can list departments — employees need it for the reimbursement picker.
+    # budget-status and write operations remain FM/ADMIN only.
 ):
     return await list_departments(scope)
 

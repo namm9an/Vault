@@ -67,9 +67,10 @@ async def test_get_budget_status_utilization_calc():
 
     scope.db.execute = AsyncMock(side_effect=[dept_result, spent_result])
 
-    # Redis client mock: set returns None (key did not exist), no alert fired
+    # 50% < 80% threshold — Redis block is never entered; no mock needed
+    # but patch anyway to ensure no real Redis call is made
     redis_mock = AsyncMock()
-    redis_mock.set = AsyncMock(return_value=None)  # not fired
+    redis_mock.get = AsyncMock(return_value=None)
     redis_mock.aclose = AsyncMock()
 
     with patch("api.services.department_service.aioredis.from_url", return_value=redis_mock):
@@ -84,7 +85,10 @@ async def test_get_budget_status_utilization_calc():
 
 @pytest.mark.asyncio
 async def test_budget_alert_dedup():
-    """First call fires alert; second call (key exists) does NOT fire again."""
+    """First call fires alert; second call (Redis key exists) does NOT fire again.
+
+    New logic (H2 fix): GET key first → if None, commit notification then SET NX.
+    """
     from api.services.department_service import get_budget_status
     from api.models.notification import NotificationType
 
@@ -105,13 +109,15 @@ async def test_budget_alert_dedup():
     scope1.db.execute = AsyncMock(side_effect=_make_db_side_effects())
     scope2.db.execute = AsyncMock(side_effect=_make_db_side_effects())
 
-    # First call: Redis SET NX returns 1 (key was set) → alert fires
+    # First call: GET returns None (key absent) → notify fires → SET NX records key
     redis_first = AsyncMock()
+    redis_first.get = AsyncMock(return_value=None)
     redis_first.set = AsyncMock(return_value=1)
     redis_first.aclose = AsyncMock()
 
-    # Second call: Redis SET NX returns None (key already exists) → no alert
+    # Second call: GET returns b"1" (key present) → dedup skips notify entirely
     redis_second = AsyncMock()
+    redis_second.get = AsyncMock(return_value=b"1")
     redis_second.set = AsyncMock(return_value=None)
     redis_second.aclose = AsyncMock()
 
@@ -123,7 +129,6 @@ async def test_budget_alert_dedup():
             side_effect=[redis_first, redis_second],
         ):
             await get_budget_status(scope1, dept_id)
-            # Reset execute for second call
             await get_budget_status(scope2, dept_id)
 
     # notify_all_fms should be called only once (first call)

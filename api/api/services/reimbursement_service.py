@@ -3,8 +3,11 @@
 Handles CRUD and state machine for employee reimbursement requests.
 Enqueues run_reimbursement_policy_check for LLM-based policy evaluation.
 """
+import logging
 from datetime import datetime, timezone
 from uuid import UUID
+
+logger = logging.getLogger(__name__)
 
 from arq import create_pool
 from arq.connections import RedisSettings
@@ -49,16 +52,37 @@ async def create_reimbursement(scope: OrgScope, data: ReimbursementCreate) -> Re
     await scope.db.commit()
     await scope.db.refresh(reimb)
 
-    # Enqueue policy check job — on failure, mark as REJECTED with reason
+    # Enqueue policy check job — on failure, reject with notification + audit trail
+    pool = None
     try:
         pool = await create_pool(RedisSettings.from_dsn(get_settings().ARQ_REDIS_URL))
         await pool.enqueue_job("run_reimbursement_policy_check", reimb_id=str(reimb.id))
-        await pool.aclose()
-    except Exception:
+    except Exception as exc:
+        logger.exception("Failed to enqueue reimbursement policy check for %s", reimb.id)
         reimb.status = ReimbursementStatus.REJECTED
         reimb.decision_reason = "Failed to enqueue policy check — please retry."
+        reimb.decided_at = datetime.now(timezone.utc)
+        scope.db.add(AuditLog(
+            org_id=scope.org_id,
+            actor_user_id=None,
+            action="reimbursement.enqueue_failed",
+            entity_type="reimbursement",
+            entity_id=reimb.id,
+            log_metadata={"error": type(exc).__name__},
+        ))
+        await fire_notification(
+            scope.db,
+            org_id=reimb.org_id,
+            user_id=reimb.user_id,
+            notification_type=NotificationType.APPROVAL_REJECTED,
+            entity_id=reimb.id,
+            body="Your reimbursement could not be processed — please try again.",
+        )
         await scope.db.commit()
         await scope.db.refresh(reimb)
+    finally:
+        if pool is not None:
+            await pool.aclose()
 
     return reimb
 

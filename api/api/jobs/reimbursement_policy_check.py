@@ -1,25 +1,29 @@
 """ARQ job: run_reimbursement_policy_check
 
-Loads all active (non-deleted) policies for the reimbursement's org, formats
-a sanitized plain-text prompt, and calls the LLM for a verdict:
-APPROVED | FLAGGED | BLOCKED.
+Phase 1: SUBMITTED → POLICY_CHECKED (commit so FM can see progress)
+Phase 2: load policies, call LLM, record verdict.
 
-Idempotent: guards on reimb.status == SUBMITTED (with FOR UPDATE).
-Single-commit rule: state transition + notifications land in one db.commit().
+State transitions:
+  APPROVED verdict → keep POLICY_CHECKED  (FM signs off via approve_reimbursement)
+  FLAGGED  verdict → keep POLICY_CHECKED  (FM reviews — flagged in notification body)
+  BLOCKED  verdict → REJECTED immediately (decided_by=None, decided_at=now)
 
-Verdict mapping (no FLAGGED/BLOCKED in reimbursement_status):
-  APPROVED → status=APPROVED, notify FMs (APPROVAL_REQUESTED)
-  FLAGGED  → status=APPROVED (FM reviews), notify FMs with "(flagged by policy)"
-  BLOCKED  → status=REJECTED, notify employee (APPROVAL_REJECTED)
+Idempotency:
+  Phase 1 guard: status != SUBMITTED → skip (already processed or retrying past crash)
+  Phase 2 guard: status != POLICY_CHECKED → skip (Phase 2 already completed)
+
+Single-commit rule: each phase writes all state + AuditLog + notifications in one commit.
 """
 import logging
 import re
+from datetime import datetime, timezone
 
 from sqlalchemy import select
 
 from api.db.base import get_session_factory
 from api.llm.llm_client import LLMUnavailableError, LLMValidationError, complete_json
 from api.llm.schemas import PolicyCheckResult
+from api.models.audit_log import AuditLog
 from api.models.notification import NotificationType
 from api.models.policy import Policy
 from api.models.reimbursement import Reimbursement, ReimbursementStatus
@@ -70,7 +74,9 @@ def _build_reimbursement_prompt(reimb: Reimbursement, policies: list[Policy]) ->
 async def run_reimbursement_policy_check(ctx: dict, *, reimb_id: str) -> None:  # noqa: ARG001
     """ARQ job entry point. ctx is the ARQ worker context dict."""
 
-    # Phase 1: mark as POLICY_CHECKED and commit so FM can see progress
+    # -------------------------------------------------------------------------
+    # Phase 1: SUBMITTED → POLICY_CHECKED (commit for FM visibility)
+    # -------------------------------------------------------------------------
     async with get_session_factory()() as db:
         reimb = (await db.execute(
             select(Reimbursement).where(Reimbursement.id == reimb_id).with_for_update()
@@ -82,20 +88,38 @@ async def run_reimbursement_policy_check(ctx: dict, *, reimb_id: str) -> None:  
 
         if reimb.status != ReimbursementStatus.SUBMITTED:
             logger.info(
-                "run_reimbursement_policy_check: reimb %s in %s — skipping",
+                "run_reimbursement_policy_check: reimb %s in %s — Phase 1 skip",
                 reimb_id, reimb.status,
             )
-            return
+            # May have already passed Phase 1; fall through to Phase 2 below.
+            # If status is beyond POLICY_CHECKED, Phase 2 guard will skip cleanly.
+        else:
+            reimb.status = ReimbursementStatus.POLICY_CHECKED
+            db.add(AuditLog(
+                org_id=reimb.org_id,
+                actor_user_id=None,
+                action="reimbursement.policy_checked",
+                entity_type="reimbursement",
+                entity_id=reimb.id,
+                log_metadata={"job": "run_reimbursement_policy_check"},
+            ))
+            await db.commit()
 
-        # Mark as POLICY_CHECKED so FM can see it's being processed
-        reimb.status = ReimbursementStatus.POLICY_CHECKED
-        await db.commit()
-
-    # Phase 2: reload with FOR UPDATE for the verdict write
+    # -------------------------------------------------------------------------
+    # Phase 2: load policies, call LLM, write verdict in one commit
+    # -------------------------------------------------------------------------
     async with get_session_factory()() as db2:
         reimb2 = (await db2.execute(
             select(Reimbursement).where(Reimbursement.id == reimb_id).with_for_update()
         )).scalar_one()
+
+        # Idempotency guard for Phase 2 — if already past POLICY_CHECKED, bail out
+        if reimb2.status != ReimbursementStatus.POLICY_CHECKED:
+            logger.info(
+                "run_reimbursement_policy_check: reimb %s in %s — Phase 2 skip",
+                reimb_id, reimb2.status,
+            )
+            return
 
         policies = list((await db2.execute(
             select(Policy).where(
@@ -106,7 +130,15 @@ async def run_reimbursement_policy_check(ctx: dict, *, reimb_id: str) -> None:  
         )).scalars().all())
 
         if not policies:
-            reimb2.status = ReimbursementStatus.APPROVED
+            # No policies → leave POLICY_CHECKED for FM sign-off
+            db2.add(AuditLog(
+                org_id=reimb2.org_id,
+                actor_user_id=None,
+                action="reimbursement.policy_no_rules",
+                entity_type="reimbursement",
+                entity_id=reimb2.id,
+                log_metadata={"reason": "no active policies — routed to FM"},
+            ))
             await notify_all_fms(
                 db=db2,
                 org_id=reimb2.org_id,
@@ -114,7 +146,7 @@ async def run_reimbursement_policy_check(ctx: dict, *, reimb_id: str) -> None:  
                 entity_id=reimb2.id,
                 body=(
                     f"Reimbursement of {reimb2.currency} {reimb2.amount} "
-                    "auto-approved (no active policies)."
+                    "needs FM sign-off (no active policies to auto-evaluate)."
                 ),
             )
             await db2.commit()
@@ -131,8 +163,15 @@ async def run_reimbursement_policy_check(ctx: dict, *, reimb_id: str) -> None:  
                 max_tokens=600,
             )
         except (LLMValidationError, LLMUnavailableError) as exc:
-            # Fail-safe: route to FM for manual review
-            reimb2.status = ReimbursementStatus.APPROVED
+            # Fail-safe: leave POLICY_CHECKED for FM to review manually
+            db2.add(AuditLog(
+                org_id=reimb2.org_id,
+                actor_user_id=None,
+                action="reimbursement.policy_error",
+                entity_type="reimbursement",
+                entity_id=reimb2.id,
+                log_metadata={"error": type(exc).__name__},
+            ))
             await notify_all_fms(
                 db=db2,
                 org_id=reimb2.org_id,
@@ -151,36 +190,24 @@ async def run_reimbursement_policy_check(ctx: dict, *, reimb_id: str) -> None:  
         except ValueError:
             verdict = PolicyVerdict.FLAGGED
 
-        if verdict == PolicyVerdict.APPROVED:
-            reimb2.status = ReimbursementStatus.APPROVED
-            await notify_all_fms(
-                db=db2,
-                org_id=reimb2.org_id,
-                notification_type=NotificationType.APPROVAL_REQUESTED,
-                entity_id=reimb2.id,
-                body=(
-                    f"Reimbursement of {reimb2.currency} {reimb2.amount} approved by policy. "
-                    "Ready for FM sign-off."
-                ),
-            )
-
-        elif verdict == PolicyVerdict.FLAGGED:
-            # No FLAGGED status in reimbursement_status — route to FM as APPROVED
-            reimb2.status = ReimbursementStatus.APPROVED
-            await notify_all_fms(
-                db=db2,
-                org_id=reimb2.org_id,
-                notification_type=NotificationType.APPROVAL_REQUESTED,
-                entity_id=reimb2.id,
-                body=(
-                    f"Reimbursement flagged by policy: {result.reason}. "
-                    "Manual review required."
-                ),
-            )
-
-        else:  # BLOCKED
+        if verdict == PolicyVerdict.BLOCKED:
+            # Auto-reject — system actor fills decided_by/decided_at
             reimb2.status = ReimbursementStatus.REJECTED
             reimb2.decision_reason = result.policy_matched or result.reason
+            reimb2.decided_by = None   # system-driven
+            reimb2.decided_at = datetime.now(timezone.utc)
+            db2.add(AuditLog(
+                org_id=reimb2.org_id,
+                actor_user_id=None,
+                action="reimbursement.policy_blocked",
+                entity_type="reimbursement",
+                entity_id=reimb2.id,
+                log_metadata={
+                    "verdict": "BLOCKED",
+                    "reason": result.reason,
+                    "policy_matched": result.policy_matched,
+                },
+            ))
             await fire_notification(
                 db=db2,
                 org_id=reimb2.org_id,
@@ -188,6 +215,32 @@ async def run_reimbursement_policy_check(ctx: dict, *, reimb_id: str) -> None:  
                 notification_type=NotificationType.APPROVAL_REJECTED,
                 entity_id=reimb2.id,
                 body=f"Your reimbursement was rejected: {reimb2.decision_reason}",
+            )
+        else:
+            # APPROVED or FLAGGED — keep POLICY_CHECKED, let FM sign off
+            action = "reimbursement.policy_approved" if verdict == PolicyVerdict.APPROVED else "reimbursement.policy_flagged"
+            flagged_suffix = " (flagged by policy — review required)" if verdict == PolicyVerdict.FLAGGED else ""
+            db2.add(AuditLog(
+                org_id=reimb2.org_id,
+                actor_user_id=None,
+                action=action,
+                entity_type="reimbursement",
+                entity_id=reimb2.id,
+                log_metadata={
+                    "verdict": verdict.value,
+                    "reason": result.reason,
+                    "policy_matched": result.policy_matched,
+                },
+            ))
+            await notify_all_fms(
+                db=db2,
+                org_id=reimb2.org_id,
+                notification_type=NotificationType.APPROVAL_REQUESTED,
+                entity_id=reimb2.id,
+                body=(
+                    f"Reimbursement of {reimb2.currency} {reimb2.amount} "
+                    f"is ready for FM sign-off{flagged_suffix}."
+                ),
             )
 
         await db2.commit()
