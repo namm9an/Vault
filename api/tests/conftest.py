@@ -14,13 +14,3 @@ os.environ.setdefault("REDIS_URL", "redis://localhost:6379/0")
 os.environ.setdefault("ARQ_REDIS_URL", "redis://localhost:6379/1")
 
 import pytest  # noqa: E402
-
-
-@pytest.fixture
-def admin_token_payload(acme_org_id, admin_user_id):
-    return {
-        "sub": str(admin_user_id),
-        "org_id": str(acme_org_id),
-        "role": "ADMIN",
-        "type": "access",
-    }
