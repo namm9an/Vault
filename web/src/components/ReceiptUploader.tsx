@@ -144,9 +144,15 @@ export function ReceiptUploader({ onReceiptReady, onClear }: ReceiptUploaderProp
             // Still in flight — check again in 2 s
             pollTimer.current = setTimeout(poll, 2000);
           } else {
-            // Terminal state — let the parent know regardless of outcome
+            // Terminal state
             setStage("done");
-            onReceiptReady(receiptId);
+            // H5: only attach the receipt when OCR succeeded or needs review.
+            // A FAILED receipt has extracted_data=null — attaching it would
+            // link null data to the transaction silently.
+            if (receipt.status === "COMPLETED" || receipt.status === "NEEDS_REVIEW") {
+              onReceiptReady(receiptId);
+            }
+            // FAILED: shown in UI with error styling but not attached
           }
         } catch {
           setErrorMsg("Lost track of receipt status — try attaching again.");
