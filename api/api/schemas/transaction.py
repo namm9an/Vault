@@ -24,6 +24,8 @@ class TransactionCreate(BaseModel):
     description: str | None = None
     department_id: UUID | None = None
     occurred_at: datetime | None = None
+    # Phase 4: optional receipt to attach at creation time
+    receipt_id: UUID | None = None
 
     @field_validator("occurred_at")
     @classmethod
@@ -57,6 +59,7 @@ class TransactionOut(BaseModel):
     user_id: UUID
     card_id: UUID
     department_id: UUID | None = None
+    receipt_id: UUID | None = None
     amount: Decimal
     currency: str
     merchant: str

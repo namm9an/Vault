@@ -1,17 +1,33 @@
-"""Transaction service — state machine, CRUD, and policy stub."""
+"""Transaction service — state machine, CRUD, and ARQ-based policy engine.
+
+Create flow (Phase 4):
+  1. Validate card + RBAC
+  2. Create Transaction row (INITIATED)
+  3. Write INITIATED event
+  4. Transition → POLICY_CHECKED (writes event)
+  5. Write audit log
+  6. Commit (2 events + audit log land atomically)
+  7. Enqueue run_policy_check ARQ job
+  8. Return transaction in POLICY_CHECKED state
+
+The ARQ worker picks up run_policy_check, evaluates active policies against
+the LLM, and advances the transaction to APPROVED/FLAGGED/BLOCKED.
+"""
 from datetime import datetime, timezone
 from decimal import Decimal
 from uuid import UUID, uuid4
 
+from arq import create_pool
+from arq.connections import RedisSettings
 from fastapi import HTTPException, status
 from sqlalchemy import select
 
+from api.config import get_settings
 from api.deps import OrgScope
 from api.models.audit_log import AuditLog
 from api.models.card import Card, CardStatus
 from api.models.department import Department
 from api.models.transaction import (
-    PolicyVerdict,
     Transaction,
     TransactionEvent,
     TransactionPolicyResult,
@@ -62,7 +78,6 @@ async def transition(
         triggered_by_user=None if triggered_by_system else scope.user_id,
         triggered_by_system=triggered_by_system,
         reason=reason,
-        # Populate metadata with useful context (Low)
         event_metadata={
             "from": from_state.value if from_state else None,
             "to": to_state.value,
@@ -77,41 +92,6 @@ async def transition(
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
-
-async def _run_policy_stub(scope: OrgScope, txn: Transaction) -> PolicyVerdict:
-    """Demo policy stub — real LLM call added in Phase 4.
-
-    Heuristic (gives FM-approval and blocked paths reachable without real policies):
-      amount > ₹1,00,000  → BLOCKED
-      amount > ₹50,000    → FLAGGED (awaits FM approval)
-      otherwise           → APPROVED
-
-    Returns the PolicyVerdict so the caller can branch on it (C2 / H4).
-    """
-    if txn.amount > Decimal("100000"):
-        verdict = PolicyVerdict.BLOCKED
-        reason = "Amount exceeds ₹1,00,000 — auto-blocked (demo threshold)"
-        policy_matched = "Transactions above ₹1,00,000 require pre-approval (demo policy stub)"
-    elif txn.amount > Decimal("50000"):
-        verdict = PolicyVerdict.FLAGGED
-        reason = "Amount exceeds ₹50,000 — flagged for finance manager review (demo threshold)"
-        policy_matched = "Large transactions above ₹50,000 require FM approval (demo policy stub)"
-    else:
-        verdict = PolicyVerdict.APPROVED
-        reason = "No applicable policy (stub — Phase 4 will use live LLM policy engine)"
-        policy_matched = None
-
-    scope.db.add(TransactionPolicyResult(
-        org_id=scope.org_id,
-        transaction_id=txn.id,
-        verdict=verdict,
-        reason=reason,
-        policy_matched=policy_matched,
-        raw_llm_response={},
-        llm_model="stub",
-    ))
-    return verdict
-
 
 async def _load_transaction(
     scope: OrgScope,
@@ -191,6 +171,7 @@ async def create_transaction(scope: OrgScope, data: TransactionCreate) -> Transa
         category=data.category,
         description=data.description,
         occurred_at=data.occurred_at or datetime.now(timezone.utc),
+        receipt_id=data.receipt_id,
         state=TransactionState.INITIATED,
     )
     scope.db.add(txn)
@@ -219,23 +200,10 @@ async def create_transaction(scope: OrgScope, data: TransactionCreate) -> Transa
         )
     )
 
-    # 8. Advance to POLICY_CHECKED, run the policy engine (C2)
+    # 8. Advance to POLICY_CHECKED — the ARQ worker will drive the next transition
     await transition(scope, txn, TransactionState.POLICY_CHECKED, triggered_by_system=True)
-    verdict = await _run_policy_stub(scope, txn)
 
-    # 9. Branch on policy verdict
-    if verdict == PolicyVerdict.APPROVED:
-        # APPROVED → CLEARED (happy path: 4 events total)
-        await transition(scope, txn, TransactionState.APPROVED, triggered_by_system=True)
-        await transition(scope, txn, TransactionState.CLEARED, triggered_by_system=True)
-    elif verdict == PolicyVerdict.FLAGGED:
-        # FLAGGED: stop and await FM approval (3 events total)
-        await transition(scope, txn, TransactionState.FLAGGED, triggered_by_system=True)
-    else:
-        # BLOCKED: terminal (3 events total)
-        await transition(scope, txn, TransactionState.BLOCKED, triggered_by_system=True)
-
-    # 10. Audit log (M2)
+    # 9. Audit log (M2)
     scope.db.add(AuditLog(
         org_id=scope.org_id,
         actor_user_id=scope.user_id,
@@ -247,13 +215,19 @@ async def create_transaction(scope: OrgScope, data: TransactionCreate) -> Transa
             "currency": txn.currency,
             "merchant": txn.merchant,
             "category": txn.category.value,
-            "final_state": txn.state.value,
+            "initial_state": txn.state.value,
         },
     ))
 
-    # 11. Single commit — all events + policy result + audit log land together
+    # 10. Commit — INITIATED + POLICY_CHECKED events + audit log land atomically
     await scope.db.commit()
     await scope.db.refresh(txn)
+
+    # 11. Enqueue the LLM policy-check job asynchronously
+    pool = await create_pool(RedisSettings.from_dsn(get_settings().ARQ_REDIS_URL))
+    await pool.enqueue_job("run_policy_check", txn_id=str(txn.id))
+    await pool.aclose()
+
     return txn
 
 
@@ -295,7 +269,7 @@ async def get_transaction(
     scope: OrgScope,
     txn_id: UUID,
 ) -> tuple[Transaction, list[TransactionEvent], TransactionPolicyResult | None]:
-    # TODO (Phase 4): replace 3 round-trips with selectinload for events + policy result
+    # TODO (Phase 5): replace 3 round-trips with selectinload for events + policy result
     txn = await _load_transaction(scope, txn_id)
 
     # EMPLOYEE can only view their own transactions
