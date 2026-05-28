@@ -185,22 +185,6 @@ Vault/
 
 ---
 
-## Build Status
-
-| Phase | Feature | Status |
-|---|---|---|
-| **Phase 1** | Auth, multi-tenancy, Docker infra | ✅ Complete |
-| **Phase 2** | Cards, RBAC, user management | ✅ Complete |
-| **Phase 3** | Transaction state machine, FM approval flow | ✅ Complete |
-| **Phase 4** | Receipt OCR + Policy engine (real LLM) | 🔄 In Progress |
-| **Phase 5** | Dashboard, reimbursements, department budgets | ⏳ Upcoming |
-| **Phase 6** | Weekly digest, notifications, polish | ⏳ Upcoming |
-| **Phase 7** | Demo hardening, seed data, production deploy | ⏳ Upcoming |
-
-**Test coverage:** 31 unit tests — auth dependencies, RBAC enforcement, multi-tenancy isolation, and transaction state machine edge cases.
-
----
-
 ## Built on E2E Cloud
 
 Vault is built end-to-end on [E2E Networks](https://www.e2enetworks.com):
