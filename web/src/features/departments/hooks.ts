@@ -6,7 +6,7 @@ export function useDepartments() {
   return useQuery<Department[]>({
     queryKey: ["departments"],
     queryFn: async () => {
-      const { data } = await api.get("/api/v1/departments");
+      const { data } = await api.get("/departments");
       return data;
     },
   });
@@ -16,7 +16,7 @@ export function useBudgetStatus(deptId: string | undefined) {
   return useQuery<BudgetStatus>({
     queryKey: ["departments", deptId, "budget"],
     queryFn: async () => {
-      const { data } = await api.get(`/api/v1/departments/${deptId}/budget-status`);
+      const { data } = await api.get(`/departments/${deptId}/budget-status`);
       return data;
     },
     enabled: !!deptId,
@@ -33,7 +33,7 @@ export function useCreateDepartment() {
       alert_threshold_pct?: number;
       manager_id?: string;
     }) => {
-      const { data } = await api.post("/api/v1/departments", payload);
+      const { data } = await api.post("/departments", payload);
       return data as Department;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["departments"] }),
@@ -52,7 +52,7 @@ export function useUpdateDepartment() {
       monthly_budget?: string;
       alert_threshold_pct?: number;
     }) => {
-      const { data } = await api.patch(`/api/v1/departments/${id}`, payload);
+      const { data } = await api.patch(`/departments/${id}`, payload);
       return data as Department;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["departments"] }),
@@ -63,7 +63,7 @@ export function useDeleteDepartment() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      await api.delete(`/api/v1/departments/${id}`);
+      await api.delete(`/departments/${id}`);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["departments"] }),
   });

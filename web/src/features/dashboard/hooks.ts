@@ -6,7 +6,7 @@ export function useDashboardSummary(fromDate: string, toDate: string) {
   return useQuery<DashboardSummary>({
     queryKey: ["dashboard", "summary", fromDate, toDate],
     queryFn: async () => {
-      const { data } = await api.get("/api/v1/dashboard/summary", {
+      const { data } = await api.get("/dashboard/summary", {
         params: { from_date: fromDate, to_date: toDate },
       });
       return data;
@@ -19,7 +19,7 @@ export function useDashboardTimeseries(fromDate: string, toDate: string, bucket 
   return useQuery<TimeseriesPoint[]>({
     queryKey: ["dashboard", "timeseries", fromDate, toDate, bucket],
     queryFn: async () => {
-      const { data } = await api.get("/api/v1/dashboard/timeseries", {
+      const { data } = await api.get("/dashboard/timeseries", {
         params: { from_date: fromDate, to_date: toDate, bucket },
       });
       return data;

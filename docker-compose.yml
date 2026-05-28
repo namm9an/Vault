@@ -38,10 +38,10 @@ services:
     environment:
       MINIO_ROOT_USER: ${S3_ACCESS_KEY:-minioadmin}
       MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-minioadmin}
-    command: server /data --console-address ":9001"
+    command: server /data --console-address ":9091"
     ports:
-      - "9000:9000"   # S3 API — browser and worker both reach this
-      - "9001:9001"   # MinIO console UI
+      - "9090:9000"   # S3 API — browser and worker both reach this
+      - "9091:9091"   # MinIO console UI
     volumes:
       - miniodata:/data
     healthcheck:
