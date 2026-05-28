@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.db.base import get_session_factory
 from api.llm.llm_client import LLMUnavailableError, LLMValidationError, complete_json
 from api.llm.schemas import PolicyCheckResult
+from api.models.audit_log import AuditLog
 from api.models.notification import NotificationType
 from api.models.policy import Policy
 from api.models.transaction import (
@@ -98,7 +99,15 @@ def _write_transition(
     org_id: UUID,
     reason: str | None = None,
 ) -> None:
-    """Append a TransactionEvent and mutate txn.state.  No commit — caller commits."""
+    """Append a TransactionEvent + AuditLog and mutate txn.state.
+
+    M6 fix: system-driven transitions previously bypassed audit_log, creating
+    a compliance gap — FM audit reports would show no record of the policy
+    engine advancing a transaction to APPROVED/FLAGGED/BLOCKED.  We now write
+    an AuditLog row with actor_user_id=None (system action) alongside the
+    TransactionEvent so every state change appears in the audit trail.
+    No commit — caller commits.
+    """
     from_state = txn.state
     if to_state not in LEGAL_TRANSITIONS[from_state]:
         raise ValueError(
@@ -117,6 +126,22 @@ def _write_transition(
                 "from": from_state.value if from_state else None,
                 "to": to_state.value,
                 "triggered_by": "system",
+            },
+        )
+    )
+    # AuditLog row for compliance — actor_user_id=None marks it as a system action
+    db.add(
+        AuditLog(
+            org_id=org_id,
+            actor_user_id=None,
+            action="transaction.state_change",
+            entity_type="transaction",
+            entity_id=txn.id,
+            log_metadata={
+                "from": from_state.value if from_state else None,
+                "to": to_state.value,
+                "reason": reason,
+                "triggered_by": "policy_engine",
             },
         )
     )

@@ -1,15 +1,18 @@
 from datetime import datetime
 from decimal import Decimal
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from api.models.receipt import ReceiptStatus
 
+_ACCEPTED_CONTENT_TYPES = Literal["image/jpeg", "image/png", "application/pdf"]
+_MAX_BYTES = 10_485_760  # 10 MB — matches the client-side cap in ReceiptUploader.tsx
+
 
 class UploadUrlRequest(BaseModel):
-    filename: str = Field(min_length=1, max_length=500)
-    content_type: str = Field(min_length=1, max_length=100)
+    content_type: _ACCEPTED_CONTENT_TYPES
 
 
 class UploadUrlResponse(BaseModel):
@@ -19,7 +22,7 @@ class UploadUrlResponse(BaseModel):
 
 
 class ConfirmUploadRequest(BaseModel):
-    byte_size: int = Field(gt=0)
+    byte_size: int = Field(gt=0, le=_MAX_BYTES)  # 10 MB cap — mirrors client-side guard
 
 
 class ReceiptOut(BaseModel):

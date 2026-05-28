@@ -81,15 +81,24 @@ populate_by_name=True)` in the same validation pass.
 
 ## M6 — _write_transition in policy_check.py bypasses AuditLog
 
-**File:** `api/api/jobs/policy_check.py`
+**Status: FIXED**
 
-System-driven state transitions written by `_write_transition` produce
-`TransactionEvent` rows (the append-only event log) but no `AuditLog` row
-(the privileged-action audit table).  This means FM-facing audit reports
-miss the system-initiated APPROVED/CLEARED/FLAGGED/BLOCKED transitions.
+`_write_transition` now writes both a `TransactionEvent` row (the
+append-only event log) and an `AuditLog` row with `actor_user_id=None`
+(marking it as a system action). Every policy-engine state change now
+appears in compliance audit reports alongside human-initiated approvals.
 
-**Fix:** either write an `AuditLog` row inside `_write_transition` (using
-a synthetic `actor_user_id` sentinel UUID for "system"), or refactor to
-reuse `transaction_service.transition()` which already writes both.
+---
+
+## H5 — onReceiptReady fires for NEEDS_REVIEW — CLOSED AS INTENTIONAL
+
+**Status: CLOSED — correct behaviour after C3 fix**
+
+After the C3 fix (OCR job marks all receipts `NEEDS_REVIEW` rather than
+hallucinating `COMPLETED` data), `NEEDS_REVIEW` is the only non-`FAILED`
+terminal state a receipt can reach. Blocking `NEEDS_REVIEW` from calling
+`onReceiptReady` would mean receipts could never be attached to transactions
+at all. The callback correctly fires for both `COMPLETED` and `NEEDS_REVIEW`,
+and is suppressed only for `FAILED`.
 
 ---
