@@ -30,8 +30,8 @@ Vault is a Ramp-inspired corporate spend management platform with an AI layer th
 
 ## The 3 AI Features
 
-### 1 · Receipt OCR
-Upload a photo of any receipt. Vault sends it to **Llama 3.1 8B Instruct** on E2E TIR with a vision prompt and auto-fills merchant, amount, date, currency, and category. Confidence below 70% routes to a human — nothing silently gets the wrong number.
+### 1 · Receipt Upload → NEEDS_REVIEW
+Upload a photo of any receipt (JPEG, PNG, or PDF). Vault stores it in S3-compatible object storage and routes it to a human reviewer — `NEEDS_REVIEW` is the honest status since Llama 3.1 8B is text-only (vision capability arrives in 3.2). The uploaded receipt can still be attached to any transaction immediately. When a vision-capable model is available on E2E TIR, only one job file needs to change to unlock auto-fill.
 
 ### 2 · Policy Engine
 Write a rule in plain English:
@@ -137,6 +137,7 @@ docker compose exec api python -m api.db.seeds
 |---|---|
 | Web app | http://localhost:5173 |
 | API docs (Swagger) | http://localhost:8001/docs |
+| MinIO console (S3 UI) | http://localhost:9001 |
 | MailHog (email UI) | http://localhost:8025 |
 | API health check | http://localhost:8001/health |
 
@@ -150,26 +151,32 @@ Sign up at the web app, or use the seeded accounts from `seeds.py`.
 Vault/
 ├── api/                          Python FastAPI backend
 │   ├── api/
-│   │   ├── routers/              HTTP endpoints (auth, cards, users, transactions…)
+│   │   ├── routers/              HTTP endpoints (auth, cards, users, transactions,
+│   │   │                         receipts, policies…)
 │   │   ├── services/             Business logic — one file per resource
 │   │   ├── models/               SQLAlchemy 2.0 async ORM models
 │   │   ├── schemas/              Pydantic v2 request / response models
-│   │   ├── ai/                   LLM client, prompts, response schemas
-│   │   ├── jobs/                 ARQ background jobs + cron worker
+│   │   ├── llm/                  LLM client + Pydantic response schemas
+│   │   ├── jobs/                 ARQ background jobs (ocr_receipt, run_policy_check)
+│   │   ├── storage/              S3 helpers (presign_put/get, head, get_bytes)
 │   │   ├── deps.py               get_current_user · require_role · OrgScope
 │   │   └── config.py             pydantic-settings — all env config in one place
-│   ├── alembic/                  DB migrations (baseline + incremental)
-│   └── tests/                    31 unit tests — deps, RBAC, multi-tenancy, txn state machine
+│   ├── alembic/                  DB migrations (0001_baseline, 0002_global_email_unique,
+│   │                             0003_policy_soft_delete)
+│   └── tests/                    40 unit tests — deps, RBAC, multi-tenancy,
+│                                 txn state machine, policy service, policy check job
 │
 ├── web/                          React + Vite + TypeScript SPA
 │   └── src/
 │       ├── pages/                LoginPage · SignupPage · DashboardPage
-│       │                         TransactionsPage · CardsPage · SettingsPage
-│       ├── components/           AppLayout (sticky nav) · RequireAuth guard
+│       │                         TransactionsPage · CardsPage · PoliciesPage · SettingsPage
+│       ├── components/           AppLayout · RequireAuth · ReceiptUploader · VerdictBadge
 │       ├── features/             React Query hooks per resource
+│       │                         (auth, transactions, cards, policies, receipts…)
 │       └── lib/                  Axios client · auth helpers · QueryClient
 │
-├── docker-compose.yml            Local dev — db, redis, api, worker, web, mailhog
+├── docker-compose.yml            Local dev — db, redis, api, worker, web,
+│                                 minio, minio-init, mailhog
 └── .env.example                  All required environment variables documented
 ```
 
@@ -181,7 +188,7 @@ Vault/
 - **RBAC:** Three roles — `ADMIN`, `FM` (Finance Manager), `EMPLOYEE`. `require_role()` is a FastAPI dependency applied at the route level.
 - **Token security:** Access tokens (60 min), refresh tokens (30 days) stored in DB for revocation. Rotation is atomic via `SELECT FOR UPDATE` to close concurrent-refresh races.
 - **Money columns:** All amounts stored as `NUMERIC(14,2)` / Python `Decimal`. No floats anywhere in the money path.
-- **Audit log:** Every privileged mutation (card freeze, transaction approve/reject) writes an immutable `audit_logs` row in the same DB transaction as the state change.
+- **Audit log:** Every privileged mutation (card freeze, transaction approve/reject, policy engine state change) writes an immutable `audit_log` row in the same DB transaction as the state change. System-driven transitions (policy engine) write `actor_user_id=NULL` rows to distinguish them from human actions in compliance reports.
 
 ---
 
