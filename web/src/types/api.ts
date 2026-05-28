@@ -288,14 +288,31 @@ export type NotificationType =
 
 export type Notification = {
   id: string;
-  org_id: string;
-  user_id: string;
-  type: NotificationType;
+  type: string;
   title: string;
   body: string;
   link: string | null;
   payload: Record<string, unknown>;
   read_at: string | null;
   created_at: string;
-  updated_at: string;
 };
+
+// ---------------------------------------------------------------------------
+// Digest
+// ---------------------------------------------------------------------------
+
+export type DigestStatus = "PENDING" | "COMPLETED" | "FAILED";
+
+export interface Digest {
+  id: string;
+  org_id: string;
+  period_start: string;
+  period_end: string;
+  status: DigestStatus;
+  headline: string | null;
+  body: string | null;
+  top_recommendations: string[] | null;
+  flagged_items: Array<{ description: string; amount: number; reason: string }> | null;
+  created_at: string;
+  updated_at: string;
+}

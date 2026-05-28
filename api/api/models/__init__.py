@@ -19,6 +19,8 @@ from api.models.transaction import (
 )
 # Reimbursement must come AFTER Receipt (FK dependency on receipts.id)
 from api.models.reimbursement import Reimbursement, ReimbursementStatus
+# Phase 6: Digest
+from api.models.digest import Digest, DigestStatus
 
 __all__ = [
     "Organization",
@@ -42,4 +44,6 @@ __all__ = [
     "PolicyVerdict",
     "Reimbursement",
     "ReimbursementStatus",
+    "Digest",
+    "DigestStatus",
 ]

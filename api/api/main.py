@@ -11,6 +11,8 @@ from api.routers.auth import router as auth_router
 from api.routers.cards import router as cards_router
 from api.routers.dashboard import router as dashboard_router
 from api.routers.departments import router as departments_router
+from api.routers.digest import router as digest_router
+from api.routers.notifications import router as notifications_router
 from api.routers.policies import router as policies_router
 from api.routers.receipts import router as receipts_router
 from api.routers.reimbursements import router as reimbursements_router
@@ -65,6 +67,8 @@ app.include_router(auth_router, prefix="/api/v1")
 app.include_router(cards_router, prefix="/api/v1")
 app.include_router(dashboard_router, prefix="/api/v1")
 app.include_router(departments_router, prefix="/api/v1")
+app.include_router(digest_router, prefix="/api/v1")
+app.include_router(notifications_router, prefix="/api/v1")
 app.include_router(policies_router, prefix="/api/v1")
 app.include_router(receipts_router, prefix="/api/v1")
 app.include_router(reimbursements_router, prefix="/api/v1")

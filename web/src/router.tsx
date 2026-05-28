@@ -6,6 +6,7 @@ import { SignupPage } from "@/pages/SignupPage";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { CardsPage } from "@/pages/CardsPage";
 import { DepartmentsPage } from "@/pages/DepartmentsPage";
+import { DigestPage } from "@/pages/DigestPage";
 import { PoliciesPage } from "@/pages/PoliciesPage";
 import { ReimbursementsPage } from "@/pages/ReimbursementsPage";
 import { SettingsPage } from "@/pages/SettingsPage";
@@ -49,5 +50,9 @@ export const router = createBrowserRouter([
   {
     path: "/departments",
     element: <ProtectedLayout><DepartmentsPage /></ProtectedLayout>,
+  },
+  {
+    path: "/digest",
+    element: <ProtectedLayout><DigestPage /></ProtectedLayout>,
   },
 ]);
