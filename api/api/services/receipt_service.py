@@ -99,10 +99,18 @@ async def confirm_upload(
     await scope.db.commit()
     await scope.db.refresh(receipt)
 
-    # Enqueue OCR job
-    pool = await create_pool(RedisSettings.from_dsn(get_settings().ARQ_REDIS_URL))
-    await pool.enqueue_job("ocr_receipt", receipt_id=str(receipt.id))
-    await pool.aclose()
+    # H3: if Redis is down the receipt would be stuck in PROCESSING forever
+    # (retry_ocr only allows FAILED|NEEDS_REVIEW).  Catch and mark FAILED
+    # so the client can recover via the retry endpoint.
+    try:
+        pool = await create_pool(RedisSettings.from_dsn(get_settings().ARQ_REDIS_URL))
+        await pool.enqueue_job("ocr_receipt", receipt_id=str(receipt.id))
+        await pool.aclose()
+    except Exception as exc:  # noqa: BLE001
+        receipt.status = ReceiptStatus.FAILED
+        receipt.llm_error = "Failed to enqueue OCR job — please use the retry endpoint."
+        await scope.db.commit()
+        await scope.db.refresh(receipt)
 
     return receipt
 
@@ -126,9 +134,16 @@ async def retry_ocr(scope: OrgScope, receipt_id: UUID) -> Receipt:
     await scope.db.commit()
     await scope.db.refresh(receipt)
 
-    pool = await create_pool(RedisSettings.from_dsn(get_settings().ARQ_REDIS_URL))
-    await pool.enqueue_job("ocr_receipt", receipt_id=str(receipt.id))
-    await pool.aclose()
+    # H3: same guard as confirm_upload — Redis failure must not wedge the receipt
+    try:
+        pool = await create_pool(RedisSettings.from_dsn(get_settings().ARQ_REDIS_URL))
+        await pool.enqueue_job("ocr_receipt", receipt_id=str(receipt.id))
+        await pool.aclose()
+    except Exception as exc:  # noqa: BLE001
+        receipt.status = ReceiptStatus.FAILED
+        receipt.llm_error = "Failed to enqueue OCR job — please use the retry endpoint."
+        await scope.db.commit()
+        await scope.db.refresh(receipt)
 
     return receipt
 
