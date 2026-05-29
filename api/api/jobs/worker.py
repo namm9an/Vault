@@ -1,5 +1,5 @@
 from arq.connections import RedisSettings
-from arq.crons import cron
+from arq.cron import cron
 
 from api.config import get_settings
 from api.jobs.digest_job import generate_weekly_digest
