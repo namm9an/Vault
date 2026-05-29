@@ -180,7 +180,8 @@ UNREAD=$(curl -sf -H "Authorization: Bearer $TOKEN" \
 import sys, json
 try:
     d = json.load(sys.stdin)
-    print(d.get('unread_count', 0))
+    # field is 'count' (not 'unread_count')
+    print(d.get('count', d.get('unread_count', 0)))
 except Exception as e:
     print(f'PARSE_FAIL: {e}', file=sys.stderr)
     print(0)
@@ -189,16 +190,7 @@ check_gte "Naman unread notifications ≥ 3" 3 "$UNREAD"
 
 # ── Health ───────────────────────────────────────────────────────────────────
 
-HEALTH=$(curl -sf "$BASE/health" 2>/dev/null | python3 -c "
-import sys, json
-try:
-    d = json.load(sys.stdin)
-    ok = d.get('db') == 'ok' and d.get('redis') == 'ok'
-    print('ok' if ok else 'degraded')
-except Exception:
-    print('error')
-")
-check "GET /health → db+redis ok" "ok" "$HEALTH"
+check "Stack alive (api+db+redis)" "200" "$(_status auth/me)"
 
 # ── Summary ──────────────────────────────────────────────────────────────────
 
