@@ -187,21 +187,21 @@ export function ReceiptUploader({ onReceiptReady, onClear }: ReceiptUploaderProp
   if (stage === "idle" || stage === "error") {
     return (
       <div>
-        <label className="block text-sm font-medium text-neutral-700 mb-1">
-          Receipt <span className="text-neutral-400 font-normal">(optional)</span>
+        <label className="block text-sm font-medium text-[#0c0a08] mb-1">
+          Receipt <span className="text-[#6e6a68] font-normal">(optional)</span>
         </label>
         <div
           onDrop={onDrop}
           onDragOver={(e) => e.preventDefault()}
           onClick={() => inputRef.current?.click()}
-          className="flex flex-col items-center justify-center gap-1 border-2 border-dashed rounded-lg px-4 py-5 cursor-pointer hover:border-neutral-400 hover:bg-neutral-50 transition-colors"
+          className="flex flex-col items-center justify-center gap-1 border-2 border-dashed border-[#d2cecb] rounded-lg px-4 py-5 cursor-pointer hover:border-[#6e6a68] hover:bg-[#f4f2f0] transition-colors"
         >
           <span className="text-2xl">📎</span>
-          <p className="text-sm text-neutral-600">
+          <p className="text-sm text-[#6e6a68]">
             Drag and drop or{" "}
-            <span className="underline text-neutral-900">browse</span>
+            <span className="underline text-[#0c0a08]">browse</span>
           </p>
-          <p className="text-xs text-neutral-400">JPEG, PNG, PDF · max 10 MB</p>
+          <p className="text-xs text-[#6e6a68]">JPEG, PNG, PDF · max 10 MB</p>
         </div>
         <input
           ref={inputRef}
@@ -225,11 +225,11 @@ export function ReceiptUploader({ onReceiptReady, onClear }: ReceiptUploaderProp
         ? "text-yellow-700 bg-yellow-50 border-yellow-200"
         : receiptStatus === "FAILED"
         ? "text-red-700 bg-red-50 border-red-200"
-        : "text-neutral-700 bg-neutral-50";
+        : "text-[#6e6a68] bg-[#f4f2f0]";
 
     return (
       <div>
-        <label className="block text-sm font-medium text-neutral-700 mb-1">Receipt</label>
+        <label className="block text-sm font-medium text-[#0c0a08] mb-1">Receipt</label>
         <div className={`flex items-center justify-between rounded-lg border px-3 py-2 ${statusColor}`}>
           <div className="flex items-center gap-2 min-w-0">
             <span className="text-base flex-shrink-0">
@@ -263,12 +263,12 @@ export function ReceiptUploader({ onReceiptReady, onClear }: ReceiptUploaderProp
   // In-progress states: requesting_url / uploading / confirming / polling
   return (
     <div>
-      <label className="block text-sm font-medium text-neutral-700 mb-1">Receipt</label>
-      <div className="flex items-center gap-3 rounded-lg border px-3 py-3 bg-neutral-50">
-        <div className="flex-shrink-0 w-4 h-4 border-2 border-neutral-400 border-t-neutral-900 rounded-full animate-spin" />
+      <label className="block text-sm font-medium text-[#0c0a08] mb-1">Receipt</label>
+      <div className="flex items-center gap-3 rounded-lg border border-[#d2cecb] px-3 py-3 bg-[#f4f2f0]">
+        <div className="flex-shrink-0 w-4 h-4 border-2 border-[#d2cecb] border-t-[#0c0a08] rounded-full animate-spin" />
         <div className="min-w-0">
-          <p className="text-sm text-neutral-700 truncate">{fileName}</p>
-          <p className="text-xs text-neutral-500">{stageCopy(stage)}</p>
+          <p className="text-sm text-[#0c0a08] truncate">{fileName}</p>
+          <p className="text-xs text-[#6e6a68]">{stageCopy(stage)}</p>
         </div>
       </div>
     </div>

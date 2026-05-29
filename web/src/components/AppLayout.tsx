@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState, type ReactNode } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useNavigate, useLocation } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import { useLogout, useMe } from "@/features/auth/hooks";
 import {
   useNotifications,
@@ -14,7 +15,7 @@ import {
 
 function IconDashboard() {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l9-9 9 9M5 10v9a1 1 0 001 1h4v-5h4v5h4a1 1 0 001-1v-9" />
     </svg>
   );
@@ -22,7 +23,7 @@ function IconDashboard() {
 
 function IconCards() {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h.01M11 15h2M3 6h18a1 1 0 011 1v10a1 1 0 01-1 1H3a1 1 0 01-1-1V7a1 1 0 011-1z" />
     </svg>
   );
@@ -30,7 +31,7 @@ function IconCards() {
 
 function IconTransactions() {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
     </svg>
   );
@@ -38,7 +39,7 @@ function IconTransactions() {
 
 function IconReimbursements() {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" />
     </svg>
   );
@@ -46,7 +47,7 @@ function IconReimbursements() {
 
 function IconDepartments() {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
     </svg>
   );
@@ -54,7 +55,7 @@ function IconDepartments() {
 
 function IconDigest() {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
     </svg>
   );
@@ -62,7 +63,7 @@ function IconDigest() {
 
 function IconPolicies() {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
     </svg>
   );
@@ -70,7 +71,7 @@ function IconPolicies() {
 
 function IconSettings() {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
       <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
     </svg>
@@ -81,6 +82,14 @@ function IconBell() {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+    </svg>
+  );
+}
+
+function IconSignOut() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
     </svg>
   );
 }
@@ -127,34 +136,34 @@ function NotificationBell() {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen((v) => !v)}
-        className="relative p-2 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors"
+        className="relative p-2 rounded-lg text-[#6e6a68] hover:text-[#0c0a08] hover:bg-white border border-transparent hover:border-[#d2cecb] transition-colors"
         aria-label="Notifications"
       >
         <IconBell />
         {count > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+          <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-solar text-[#0c0a08] text-[10px] font-bold flex items-center justify-center">
             {count > 9 ? "9+" : count}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="absolute right-0 top-10 w-80 bg-white rounded-xl shadow-xl border z-50 overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 border-b">
-            <span className="text-sm font-semibold text-neutral-900">Notifications</span>
+        <div className="absolute right-0 top-10 w-80 bg-white rounded-xl shadow-xl border border-[#d2cecb] z-50 overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-[#d2cecb]">
+            <span className="text-sm font-semibold text-[#0c0a08]">Notifications</span>
             {count > 0 && (
               <button
                 onClick={() => markAllRead.mutate()}
-                className="text-xs text-indigo-600 hover:underline"
+                className="text-xs text-[#0c0a08] hover:underline"
               >
                 Mark all read
               </button>
             )}
           </div>
 
-          <div className="max-h-80 overflow-y-auto divide-y">
+          <div className="max-h-80 overflow-y-auto divide-y divide-[#d2cecb]">
             {!notifs.data?.length ? (
-              <div className="px-4 py-8 text-center text-sm text-neutral-400">
+              <div className="px-4 py-8 text-center text-sm text-[#6e6a68]">
                 You're all caught up
               </div>
             ) : (
@@ -162,19 +171,19 @@ function NotificationBell() {
                 <button
                   key={n.id}
                   onClick={() => markRead.mutate(n.id)}
-                  className="w-full text-left px-4 py-3 hover:bg-neutral-50 transition-colors flex gap-3 items-start"
+                  className="w-full text-left px-4 py-3 hover:bg-[#f4f2f0] transition-colors flex gap-3 items-start"
                 >
                   {!n.read_at && (
-                    <span className="mt-1.5 w-2 h-2 rounded-full bg-indigo-500 flex-shrink-0" />
+                    <span className="mt-1.5 w-2 h-2 rounded-full bg-solar flex-shrink-0" />
                   )}
                   <div className={!n.read_at ? "" : "pl-5"}>
-                    <p className="text-sm font-medium text-neutral-900 truncate">
+                    <p className="text-sm font-medium text-[#0c0a08] truncate">
                       {n.title}
                     </p>
-                    <p className="text-xs text-neutral-500 line-clamp-2 mt-0.5">
+                    <p className="text-xs text-[#6e6a68] line-clamp-2 mt-0.5">
                       {n.body}
                     </p>
-                    <p className="text-xs text-neutral-400 mt-1">
+                    <p className="text-xs text-[#6e6a68] mt-1">
                       {timeAgo(n.created_at)}
                     </p>
                   </div>
@@ -189,7 +198,7 @@ function NotificationBell() {
 }
 
 // ---------------------------------------------------------------------------
-// NavItem helper
+// NavItem — icon-only with Framer Motion tooltip
 // ---------------------------------------------------------------------------
 
 interface NavItemProps {
@@ -200,22 +209,72 @@ interface NavItemProps {
 }
 
 function NavItem({ to, exact, icon, label }: NavItemProps) {
+  const [hovered, setHovered] = useState(false);
+
   return (
-    <NavLink
-      to={to}
-      end={exact}
-      className={({ isActive }) =>
-        `flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-          isActive
-            ? "bg-neutral-800 text-white"
-            : "text-neutral-400 hover:text-white hover:bg-neutral-800"
-        }`
-      }
+    <div
+      className="relative flex items-center mb-1"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
-      {icon}
-      {label}
-    </NavLink>
+      <NavLink
+        to={to}
+        end={exact}
+        className={({ isActive }) =>
+          `relative w-10 h-10 rounded-lg flex items-center justify-center mx-auto cursor-pointer transition-colors ${
+            isActive
+              ? "text-solar bg-white/10"
+              : "text-white/40 hover:text-white hover:bg-white/10"
+          }`
+        }
+      >
+        {({ isActive }) => (
+          <>
+            {isActive && (
+              <motion.div
+                layoutId="sidebar-active"
+                className="absolute inset-0 bg-white/10 rounded-lg"
+                transition={{ type: "spring", bounce: 0.2, duration: 0.4 }}
+              />
+            )}
+            <span className="relative z-10">{icon}</span>
+          </>
+        )}
+      </NavLink>
+      <AnimatePresence>
+        {hovered && (
+          <motion.div
+            className="absolute left-14 bg-[#1a1919] text-white text-xs px-2 py-1 rounded whitespace-nowrap z-50 border border-white/10 pointer-events-none"
+            initial={{ opacity: 0, x: -4 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -4 }}
+            transition={{ duration: 0.12 }}
+          >
+            {label}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
+}
+
+// ---------------------------------------------------------------------------
+// Page title from pathname
+// ---------------------------------------------------------------------------
+
+function usePageTitle(): string {
+  const location = useLocation();
+  const map: Record<string, string> = {
+    "/dashboard":      "Dashboard",
+    "/cards":          "Cards",
+    "/transactions":   "Transactions",
+    "/reimbursements": "Reimbursements",
+    "/departments":    "Departments",
+    "/digest":         "Digest",
+    "/policies":       "Policies",
+    "/settings":       "Settings",
+  };
+  return map[location.pathname] ?? "Vault";
 }
 
 // ---------------------------------------------------------------------------
@@ -226,9 +285,18 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const me = useMe();
   const logout = useLogout();
   const navigate = useNavigate();
+  const pageTitle = usePageTitle();
+  const location = useLocation();
+
+  const [signingOut, setSigningOut] = useState(false);
 
   async function onLogout() {
-    await logout.mutateAsync();
+    setSigningOut(true);
+    try {
+      await logout.mutateAsync();
+    } finally {
+      setSigningOut(false);
+    }
     navigate("/login");
   }
 
@@ -246,20 +314,17 @@ export function AppLayout({ children }: { children: ReactNode }) {
     : "?";
 
   return (
-    <div className="flex h-screen overflow-hidden bg-neutral-50">
-      {/* Sidebar */}
-      <aside className="w-56 flex-shrink-0 h-screen bg-neutral-900 flex flex-col">
-        {/* Logo */}
-        <div className="flex items-center gap-2 px-4 py-5">
-          <div className="w-7 h-7 rounded-md bg-indigo-600 flex items-center justify-center flex-shrink-0">
-            <span className="text-white text-xs font-bold">V</span>
-          </div>
-          <span className="text-white font-bold text-base tracking-tight">VAULT</span>
+    <div className="flex h-screen overflow-hidden bg-[#f4f2f0]">
+      {/* Sidebar — icon-only, 56px wide */}
+      <aside className="w-14 flex-shrink-0 h-screen bg-[#1a1919] flex flex-col items-center py-3">
+        {/* Logo mark */}
+        <div className="w-9 h-9 bg-solar rounded-lg flex items-center justify-center mb-6 flex-shrink-0">
+          <span className="text-[#0c0a08] font-bold text-sm">V</span>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto">
-          <NavItem to="/" exact icon={<IconDashboard />} label="Dashboard" />
+        <nav className="flex-1 flex flex-col w-full px-2 overflow-y-auto">
+          <NavItem to="/dashboard" exact icon={<IconDashboard />} label="Dashboard" />
           <NavItem to="/cards" icon={<IconCards />} label="Cards" />
           <NavItem to="/transactions" icon={<IconTransactions />} label="Transactions" />
           <NavItem to="/reimbursements" icon={<IconReimbursements />} label="Reimbursements" />
@@ -272,32 +337,28 @@ export function AppLayout({ children }: { children: ReactNode }) {
           )}
 
           {/* Divider */}
-          <div className="my-2 border-t border-neutral-800" />
+          <div className="my-2 border-t border-white/10 mx-2" />
 
           <NavItem to="/settings" icon={<IconSettings />} label="Settings" />
         </nav>
 
-        {/* Bottom: user + sign out */}
-        <div className="px-3 pb-4 space-y-2">
-          <div className="flex items-center gap-3 px-2 py-2">
-            <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center flex-shrink-0">
-              <span className="text-white text-xs font-semibold">{initials}</span>
-            </div>
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-white truncate">
-                {user?.full_name ?? "…"}
-              </p>
-              <p className="text-xs text-neutral-400 truncate">{user?.role ?? ""}</p>
-            </div>
+        {/* Bottom: user initials + sign out */}
+        <div className="flex flex-col items-center gap-2 pb-1 w-full px-2">
+          {/* User initials avatar */}
+          <div
+            className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center cursor-default"
+            title={user?.full_name ?? ""}
+          >
+            <span className="text-white text-xs font-semibold">{initials}</span>
           </div>
+          {/* Sign out */}
           <button
             onClick={onLogout}
-            className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-neutral-400 hover:text-white hover:bg-neutral-800 rounded-lg transition-colors"
+            disabled={signingOut}
+            className="w-10 h-10 rounded-lg flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+            title="Sign out"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
-            Sign out
+            <IconSignOut />
           </button>
         </div>
       </aside>
@@ -305,15 +366,35 @@ export function AppLayout({ children }: { children: ReactNode }) {
       {/* Main content area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top bar */}
-        <header className="h-14 flex-shrink-0 bg-white border-b flex items-center justify-between px-6">
-          <span className="text-sm font-medium text-neutral-600">
-            {org?.name ?? ""}
+        <header className="h-[62px] flex-shrink-0 bg-[#f4f2f0] border-b border-[#d2cecb] flex items-center justify-between px-6">
+          <span className="text-base font-semibold text-[#0c0a08]">
+            {pageTitle}
           </span>
-          <NotificationBell />
+          <div className="flex items-center gap-3">
+            <NotificationBell />
+            {org?.name && (
+              <span className="text-xs px-2 py-1 rounded border border-[#d2cecb] bg-[#f4f2f0] text-[#6e6a68]">
+                {user?.role?.replace("_", " ") ?? ""}
+              </span>
+            )}
+          </div>
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto">{children}</main>
+        <main className="flex-1 overflow-y-auto">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={location.pathname}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.18, ease: "easeOut" }}
+              className="h-full"
+            >
+              {children}
+            </motion.div>
+          </AnimatePresence>
+        </main>
       </div>
     </div>
   );

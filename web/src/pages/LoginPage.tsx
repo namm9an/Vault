@@ -12,39 +12,48 @@ export function LoginPage() {
     e.preventDefault();
     try {
       await login.mutateAsync({ email, password });
-      navigate("/");
+      navigate("/dashboard");
     } catch {
       /* error rendered below */
     }
   }
 
   return (
-    <div className="min-h-full flex items-center justify-center px-4">
-      <form onSubmit={onSubmit} className="w-full max-w-sm bg-white rounded-xl shadow-sm border p-8 space-y-5">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Vault</h1>
-          <p className="text-sm text-neutral-500 mt-1">Sign in to your organisation</p>
+    <div
+      className="min-h-screen flex items-center justify-center bg-[#f4f2f0]"
+      style={{
+        backgroundImage: 'radial-gradient(circle, #d2cecb 1px, transparent 1px)',
+        backgroundSize: '24px 24px',
+      }}
+    >
+      <form onSubmit={onSubmit} className="w-full max-w-md mx-4 bg-white rounded-2xl border border-[#d2cecb] shadow-lg p-10 space-y-5">
+        <div className="flex flex-col items-center mb-2">
+          <div className="w-10 h-10 bg-solar rounded-lg flex items-center justify-center mb-6">
+            <span className="text-[#0c0a08] font-bold text-sm">V</span>
+          </div>
+          <h1 className="text-2xl font-bold text-[#0c0a08] text-center">Sign in to Vault</h1>
+          <p className="text-sm text-[#6e6a68] text-center mt-1">Corporate spend intelligence</p>
         </div>
 
         <label className="block">
-          <span className="text-sm text-neutral-700">Email</span>
+          <span className="text-sm text-[#0c0a08] font-medium">Email</span>
           <input
             type="email"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="mt-1 w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-vault-accent/30"
+            className="mt-1 w-full px-3 py-2.5 border border-[#d2cecb] rounded-[6px] focus:outline-none focus:ring-2 focus:ring-solar/50 focus:border-solar"
           />
         </label>
 
         <label className="block">
-          <span className="text-sm text-neutral-700">Password</span>
+          <span className="text-sm text-[#0c0a08] font-medium">Password</span>
           <input
             type="password"
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="mt-1 w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-vault-accent/30"
+            className="mt-1 w-full px-3 py-2.5 border border-[#d2cecb] rounded-[6px] focus:outline-none focus:ring-2 focus:ring-solar/50 focus:border-solar"
           />
         </label>
 
@@ -57,13 +66,16 @@ export function LoginPage() {
         <button
           type="submit"
           disabled={login.isPending}
-          className="w-full py-2 rounded-md bg-vault-ink text-white font-medium disabled:opacity-50"
+          className="w-full py-2.5 rounded-[6px] bg-solar text-[#0c0a08] font-semibold hover:bg-solar-light disabled:opacity-50 transition-colors"
         >
           {login.isPending ? "Signing in…" : "Sign in"}
         </button>
 
-        <p className="text-sm text-neutral-500 text-center">
-          No org yet? <Link to="/signup" className="text-vault-accent hover:underline">Create one</Link>
+        <p className="text-sm text-[#6e6a68] text-center">
+          No org yet?{" "}
+          <Link to="/signup" className="text-[#0c0a08] underline">
+            Create one
+          </Link>
         </p>
       </form>
     </div>

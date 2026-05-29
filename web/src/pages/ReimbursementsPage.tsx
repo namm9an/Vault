@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { useMe } from "@/features/auth/hooks";
 import { EmptyState } from "@/components/EmptyState";
 import {
@@ -9,30 +10,17 @@ import {
   useMarkPaid,
 } from "@/features/reimbursements/hooks";
 import { useDepartments } from "@/features/departments/hooks";
-import type { Reimbursement, ReimbursementStatus, SpendCategory } from "@/types/api";
+import { Badge, type BadgeVariant } from "@/components/ui/badge";
+import type { Reimbursement, SpendCategory } from "@/types/api";
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
 const ALL_CATEGORIES: SpendCategory[] = [
-  "TRAVEL",
-  "MEALS",
-  "SAAS",
-  "OFFICE",
-  "MARKETING",
-  "HARDWARE",
-  "PROFESSIONAL_SERVICES",
-  "OTHER",
+  "TRAVEL", "MEALS", "SAAS", "OFFICE", "MARKETING", "HARDWARE",
+  "PROFESSIONAL_SERVICES", "OTHER",
 ];
-
-const STATUS_COLORS: Record<ReimbursementStatus, string> = {
-  SUBMITTED: "bg-neutral-100 text-neutral-600",
-  POLICY_CHECKED: "bg-blue-100 text-blue-700",
-  APPROVED: "bg-green-100 text-green-700",
-  REJECTED: "bg-red-100 text-red-700",
-  PAID: "bg-purple-100 text-purple-700",
-};
 
 function fmtAmount(amount: string, currency: string) {
   if (currency === "INR") {
@@ -87,11 +75,11 @@ function SubmitDialog({ onClose }: SubmitDialogProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-4">
-        <h2 className="text-lg font-semibold">Submit reimbursement</h2>
+        <h2 className="text-lg font-semibold text-[#0c0a08]">Submit reimbursement</h2>
         <form onSubmit={onSubmit} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <label className="block">
-              <span className="text-sm text-neutral-600">Amount</span>
+              <span className="text-sm text-[#6e6a68]">Amount</span>
               <input
                 required
                 type="number"
@@ -100,15 +88,15 @@ function SubmitDialog({ onClose }: SubmitDialogProps) {
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="e.g. 1200.00"
-                className="mt-1 w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                className="mt-1 w-full border border-[#d2cecb] rounded-[6px] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-solar/50"
               />
             </label>
             <label className="block">
-              <span className="text-sm text-neutral-600">Currency</span>
+              <span className="text-sm text-[#6e6a68]">Currency</span>
               <select
                 value={currency}
                 onChange={(e) => setCurrency(e.target.value)}
-                className="mt-1 w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                className="mt-1 w-full border border-[#d2cecb] rounded-[6px] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-solar/50"
               >
                 {["INR", "USD", "EUR", "GBP"].map((c) => (
                   <option key={c} value={c}>{c}</option>
@@ -118,11 +106,11 @@ function SubmitDialog({ onClose }: SubmitDialogProps) {
           </div>
 
           <label className="block">
-            <span className="text-sm text-neutral-600">Category</span>
+            <span className="text-sm text-[#6e6a68]">Category</span>
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value as SpendCategory)}
-              className="mt-1 w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+              className="mt-1 w-full border border-[#d2cecb] rounded-[6px] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-solar/50"
             >
               {ALL_CATEGORIES.map((c) => (
                 <option key={c} value={c}>{c}</option>
@@ -131,24 +119,24 @@ function SubmitDialog({ onClose }: SubmitDialogProps) {
           </label>
 
           <label className="block">
-            <span className="text-sm text-neutral-600">Description</span>
+            <span className="text-sm text-[#6e6a68]">Description</span>
             <textarea
               required
               rows={3}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Brief description of the expense…"
-              className="mt-1 w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 resize-none"
+              className="mt-1 w-full border border-[#d2cecb] rounded-[6px] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-solar/50 resize-none"
             />
           </label>
 
           {depts.length > 0 && (
             <label className="block">
-              <span className="text-sm text-neutral-600">Department (optional)</span>
+              <span className="text-sm text-[#6e6a68]">Department (optional)</span>
               <select
                 value={deptId}
                 onChange={(e) => setDeptId(e.target.value)}
-                className="mt-1 w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                className="mt-1 w-full border border-[#d2cecb] rounded-[6px] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-solar/50"
               >
                 <option value="">None</option>
                 {depts.map((d) => (
@@ -169,14 +157,14 @@ function SubmitDialog({ onClose }: SubmitDialogProps) {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-2 rounded-md border text-sm text-neutral-700 hover:bg-neutral-50"
+              className="flex-1 py-2 rounded-[6px] border border-[#d2cecb] text-sm text-[#0c0a08] hover:bg-[#f4f2f0]"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={create.isPending}
-              className="flex-1 py-2 rounded-md bg-neutral-900 text-white text-sm font-medium disabled:opacity-50"
+              className="flex-1 py-2 rounded-[6px] bg-solar text-[#0c0a08] text-sm font-semibold hover:bg-solar-light disabled:opacity-50"
             >
               {create.isPending ? "Submitting…" : "Submit"}
             </button>
@@ -213,30 +201,30 @@ function ReasonDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4">
-        <h2 className="text-lg font-semibold">{title}</h2>
+        <h2 className="text-lg font-semibold text-[#0c0a08]">{title}</h2>
         <label className="block">
-          <span className="text-sm text-neutral-600">Reason (optional)</span>
+          <span className="text-sm text-[#6e6a68]">Reason (optional)</span>
           <textarea
             rows={3}
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            className="mt-1 w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 resize-none"
+            className="mt-1 w-full border border-[#d2cecb] rounded-[6px] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-solar/50 resize-none"
           />
         </label>
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 py-2 rounded-md border text-sm text-neutral-700 hover:bg-neutral-50"
+            className="flex-1 py-2 rounded-[6px] border border-[#d2cecb] text-sm text-[#0c0a08] hover:bg-[#f4f2f0]"
           >
             Cancel
           </button>
           <button
             onClick={() => onConfirm(reason)}
             disabled={isPending}
-            className={`flex-1 py-2 rounded-md text-white text-sm font-medium disabled:opacity-50 ${
+            className={`flex-1 py-2 rounded-[6px] text-sm font-medium disabled:opacity-50 ${
               danger
-                ? "bg-red-600 hover:bg-red-700"
-                : "bg-neutral-900 hover:bg-neutral-800"
+                ? "bg-red-600 text-white hover:bg-red-700"
+                : "bg-solar text-[#0c0a08] hover:bg-solar-light"
             }`}
           >
             {isPending ? "…" : confirmLabel}
@@ -292,26 +280,26 @@ export function ReimbursementsPage() {
   return (
     <div className="p-8 max-w-6xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight">Reimbursements</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-[#0c0a08]">Reimbursements</h1>
         <button
           onClick={() => setShowSubmit(true)}
-          className="px-4 py-2 rounded-md bg-neutral-900 text-white text-sm font-medium hover:bg-neutral-800"
+          className="px-4 py-2 rounded-[6px] bg-solar text-[#0c0a08] text-sm font-semibold hover:bg-solar-light"
         >
           + Submit request
         </button>
       </div>
 
       {isLoading ? (
-        <p className="text-neutral-500">Loading…</p>
+        <p className="text-[#6e6a68]">Loading…</p>
       ) : reimbs.length === 0 ? (
         <EmptyState
           title="No reimbursements yet"
           description="Submit your first expense reimbursement above."
         />
       ) : (
-        <div className="border rounded-lg overflow-hidden bg-white">
+        <div className="border border-[#d2cecb] rounded-lg overflow-hidden bg-white">
           <table className="w-full text-sm">
-            <thead className="bg-neutral-50 text-xs uppercase tracking-wide text-neutral-500">
+            <thead className="bg-[#f4f2f0] text-xs uppercase tracking-wide text-[#6e6a68]">
               <tr>
                 <th className="px-4 py-3 text-left">Description</th>
                 <th className="px-4 py-3 text-left">Category</th>
@@ -323,31 +311,35 @@ export function ReimbursementsPage() {
                 )}
               </tr>
             </thead>
-            <tbody className="divide-y divide-neutral-100">
-              {reimbs.map((r) => (
-                <tr key={r.id} className="hover:bg-neutral-50">
+            <tbody className="divide-y divide-[#d2cecb]">
+              {reimbs.map((r, index) => (
+                <motion.tr
+                  key={r.id}
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.03, duration: 0.2 }}
+                  className="hover:bg-[#f4f2f0]"
+                >
                   <td className="px-4 py-3">
-                    <div className="font-medium text-neutral-800 max-w-xs truncate">
+                    <div className="font-medium text-[#0c0a08] max-w-xs truncate">
                       {r.description}
                     </div>
                     {r.decision_reason && (
-                      <div className="text-xs text-neutral-400 mt-0.5 max-w-xs truncate">
+                      <div className="text-xs text-[#6e6a68] mt-0.5 max-w-xs truncate">
                         {r.decision_reason}
                       </div>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-neutral-500">{r.category}</td>
-                  <td className="px-4 py-3 text-right font-mono font-medium">
+                  <td className="px-4 py-3 text-[#6e6a68]">{r.category}</td>
+                  <td className="px-4 py-3 text-right font-mono font-medium text-[#0c0a08]">
                     {fmtAmount(r.amount, r.currency)}
                   </td>
                   <td className="px-4 py-3">
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[r.status]}`}
-                    >
+                    <Badge variant={r.status as BadgeVariant}>
                       {r.status}
-                    </span>
+                    </Badge>
                   </td>
-                  <td className="px-4 py-3 text-neutral-400 text-xs">
+                  <td className="px-4 py-3 text-[#6e6a68] text-xs">
                     {fmtDate(r.created_at)}
                   </td>
                   {isFMOrAdmin && (
@@ -395,7 +387,7 @@ export function ReimbursementsPage() {
                       </div>
                     </td>
                   )}
-                </tr>
+                </motion.tr>
               ))}
             </tbody>
           </table>

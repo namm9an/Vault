@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { motion } from "framer-motion";
 import {
   AreaChart,
   Area,
@@ -24,7 +25,7 @@ import {
 // ---------------------------------------------------------------------------
 
 const CATEGORY_COLORS: Record<string, string> = {
-  TRAVEL: "#6366f1",
+  TRAVEL: "#1a1919",
   MEALS: "#f59e0b",
   SAAS: "#10b981",
   OFFICE: "#3b82f6",
@@ -52,7 +53,7 @@ function fmtDate(isoDate: string) {
 // ---------------------------------------------------------------------------
 
 function Skeleton({ className = "" }: { className?: string }) {
-  return <div className={`bg-gray-100 rounded animate-pulse ${className}`} />;
+  return <div className={`bg-[#d2cecb] rounded animate-pulse ${className}`} />;
 }
 
 // ---------------------------------------------------------------------------
@@ -88,10 +89,10 @@ type KpiCardProps = {
 
 function KpiCard({ label, value, sub }: KpiCardProps) {
   return (
-    <div className="bg-white border rounded-xl p-5">
-      <div className="text-xs uppercase tracking-wide text-neutral-500 mb-1">{label}</div>
-      <div className="text-2xl font-semibold tracking-tight">{value}</div>
-      {sub && <div className="mt-1 text-sm text-neutral-500">{sub}</div>}
+    <div className="bg-white border border-[#d2cecb] rounded-xl p-5">
+      <div className="text-xs uppercase tracking-wide text-[#6e6a68] mb-1">{label}</div>
+      <div className="text-2xl font-semibold tracking-tight text-[#0c0a08]">{value}</div>
+      {sub && <div className="mt-1 text-sm text-[#6e6a68]">{sub}</div>}
     </div>
   );
 }
@@ -116,7 +117,7 @@ export function DashboardPage() {
   const delta = summary.data?.mom_delta_pct;
   const deltaEl =
     delta == null ? (
-      <span className="text-neutral-400">— no prior data</span>
+      <span className="text-[#6e6a68]">— no prior data</span>
     ) : delta > 0 ? (
       <span className="text-green-600">
         +{delta.toFixed(1)}% vs prior period
@@ -128,7 +129,7 @@ export function DashboardPage() {
     );
 
   if (me.isLoading) {
-    return <div className="p-8 text-neutral-500">Loading…</div>;
+    return <div className="p-8 text-[#6e6a68]">Loading…</div>;
   }
 
   // EMPLOYEE: simple welcome screen
@@ -136,9 +137,9 @@ export function DashboardPage() {
     return (
       <div className="p-8 max-w-3xl mx-auto">
         <h1 className="text-3xl font-semibold tracking-tight">
-          Welcome, {user?.full_name.split(" ")[0]}.
+          Welcome, {user?.full_name?.split(" ")[0] ?? "there"}.
         </h1>
-        <p className="mt-2 text-neutral-600">
+        <p className="mt-2 text-[#6e6a68]">
           Submit reimbursements via the Reimbursements tab and track your card
           transactions below.
         </p>
@@ -151,15 +152,15 @@ export function DashboardPage() {
       {/* Header + range toggle */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
-        <div className="flex gap-1 bg-neutral-100 rounded-lg p-1">
+        <div className="flex gap-1 bg-[#f4f2f0] border border-[#d2cecb] rounded-lg p-1">
           {RANGES.map(({ label, days }) => (
             <button
               key={days}
               onClick={() => setRangeDays(days)}
               className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
                 rangeDays === days
-                  ? "bg-white shadow-sm text-neutral-900"
-                  : "text-neutral-500 hover:text-neutral-800"
+                  ? "bg-solar text-[#0c0a08]"
+                  : "text-[#6e6a68] hover:text-[#0c0a08]"
               }`}
             >
               {label}
@@ -200,14 +201,14 @@ export function DashboardPage() {
       </div>
 
       {/* Spend over time (area chart) */}
-      <div className="bg-white border rounded-xl p-5">
-        <h2 className="text-sm font-medium text-neutral-700 mb-4">
+      <div className="bg-white border border-[#d2cecb] rounded-xl p-5">
+        <h2 className="text-sm font-medium text-[#0c0a08] mb-4">
           Spend over time
         </h2>
         {timeseries.isLoading ? (
           <Skeleton className="h-56" />
         ) : !timeseries.data?.length ? (
-          <div className="h-56 flex items-center justify-center text-neutral-400 text-sm">
+          <div className="h-56 flex items-center justify-center text-[#6e6a68] text-sm">
             No transactions in this period
           </div>
         ) : (
@@ -220,8 +221,8 @@ export function DashboardPage() {
             >
               <defs>
                 <linearGradient id="spendGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.15} />
-                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#1a1919" stopOpacity={0.15} />
+                  <stop offset="95%" stopColor="#1a1919" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -248,7 +249,7 @@ export function DashboardPage() {
               <Area
                 type="monotone"
                 dataKey="amount"
-                stroke="#6366f1"
+                stroke="#1a1919"
                 strokeWidth={2}
                 fill="url(#spendGrad)"
               />
@@ -260,14 +261,14 @@ export function DashboardPage() {
       {/* Category pie + Department bar */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {/* Category breakdown */}
-        <div className="bg-white border rounded-xl p-5">
-          <h2 className="text-sm font-medium text-neutral-700 mb-4">
+        <div className="bg-white border border-[#d2cecb] rounded-xl p-5">
+          <h2 className="text-sm font-medium text-[#0c0a08] mb-4">
             Spend by category
           </h2>
           {summary.isLoading ? (
             <Skeleton className="h-48" />
           ) : !summary.data?.by_category.length ? (
-            <div className="h-48 flex items-center justify-center text-neutral-400 text-sm">
+            <div className="h-48 flex items-center justify-center text-[#6e6a68] text-sm">
               No data
             </div>
           ) : (
@@ -312,10 +313,10 @@ export function DashboardPage() {
                           CATEGORY_COLORS[c.category] ?? "#94a3b8",
                       }}
                     />
-                    <span className="text-neutral-600 flex-1 truncate">
+                    <span className="text-[#6e6a68] flex-1 truncate">
                       {c.category}
                     </span>
-                    <span className="font-medium text-neutral-800">
+                    <span className="font-medium text-[#0c0a08]">
                       {fmtINR(c.amount)}
                     </span>
                   </div>
@@ -326,14 +327,14 @@ export function DashboardPage() {
         </div>
 
         {/* Department breakdown */}
-        <div className="bg-white border rounded-xl p-5">
-          <h2 className="text-sm font-medium text-neutral-700 mb-4">
+        <div className="bg-white border border-[#d2cecb] rounded-xl p-5">
+          <h2 className="text-sm font-medium text-[#0c0a08] mb-4">
             Spend by department
           </h2>
           {summary.isLoading ? (
             <Skeleton className="h-48" />
           ) : !summary.data?.by_department.length ? (
-            <div className="h-48 flex items-center justify-center text-neutral-400 text-sm">
+            <div className="h-48 flex items-center justify-center text-[#6e6a68] text-sm">
               No department data
             </div>
           ) : (
@@ -375,7 +376,7 @@ export function DashboardPage() {
                     fontSize: 12,
                   }}
                 />
-                <Bar dataKey="amount" fill="#6366f1" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="amount" fill="#1a1919" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -383,37 +384,43 @@ export function DashboardPage() {
       </div>
 
       {/* Top merchants */}
-      <div className="bg-white border rounded-xl p-5">
-        <h2 className="text-sm font-medium text-neutral-700 mb-4">
+      <div className="bg-white border border-[#d2cecb] rounded-xl p-5">
+        <h2 className="text-sm font-medium text-[#0c0a08] mb-4">
           Top merchants
         </h2>
         {summary.isLoading ? (
           <Skeleton className="h-32" />
         ) : !summary.data?.top_merchants.length ? (
-          <p className="text-neutral-400 text-sm">No merchants in this period</p>
+          <p className="text-[#6e6a68] text-sm">No merchants in this period</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-xs uppercase tracking-wide text-neutral-400">
+                <tr className="text-xs uppercase tracking-wide text-[#6e6a68]">
                   <th className="text-left pb-2 font-medium">Merchant</th>
                   <th className="text-right pb-2 font-medium">Transactions</th>
                   <th className="text-right pb-2 font-medium">Total spend</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-neutral-50">
-                {summary.data.top_merchants.map((m) => (
-                  <tr key={m.merchant} className="hover:bg-neutral-50">
-                    <td className="py-2 font-medium text-neutral-800">
+              <tbody className="divide-y divide-[#d2cecb]">
+                {summary.data.top_merchants.map((m, i) => (
+                  <motion.tr
+                    key={m.merchant}
+                    className="hover:bg-[#f4f2f0]"
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.04, duration: 0.2 }}
+                  >
+                    <td className="py-2 font-medium text-[#0c0a08]">
                       {m.merchant}
                     </td>
-                    <td className="py-2 text-right text-neutral-500">
+                    <td className="py-2 text-right text-[#6e6a68]">
                       {m.count}
                     </td>
-                    <td className="py-2 text-right font-mono text-neutral-800">
+                    <td className="py-2 text-right font-mono text-[#0c0a08]">
                       {fmtINR(m.amount)}
                     </td>
-                  </tr>
+                  </motion.tr>
                 ))}
               </tbody>
             </table>

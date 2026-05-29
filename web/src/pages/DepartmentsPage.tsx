@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { useMe } from "@/features/auth/hooks";
 import { EmptyState } from "@/components/EmptyState";
 import {
@@ -31,11 +32,13 @@ function BudgetRow({
   onEdit,
   onDelete,
   isAdmin,
+  index,
 }: {
   dept: Department;
   onEdit: (dept: Department) => void;
   onDelete: (dept: Department) => void;
   isAdmin: boolean;
+  index: number;
 }) {
   const { data: budget, isLoading } = useBudgetStatus(dept.id);
 
@@ -46,14 +49,19 @@ function BudgetRow({
   }
 
   return (
-    <tr className="hover:bg-neutral-50">
-      <td className="px-4 py-3 font-medium text-neutral-800">{dept.name}</td>
-      <td className="px-4 py-3 text-right font-mono">
+    <motion.tr
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.03, duration: 0.2 }}
+      className="hover:bg-[#f4f2f0]"
+    >
+      <td className="px-4 py-3 font-medium text-[#0c0a08]">{dept.name}</td>
+      <td className="px-4 py-3 text-right font-mono text-[#0c0a08]">
         {fmtINR(dept.monthly_budget)}
       </td>
-      <td className="px-4 py-3 text-right font-mono">
+      <td className="px-4 py-3 text-right font-mono text-[#0c0a08]">
         {isLoading ? (
-          <span className="inline-block w-16 h-4 bg-gray-100 rounded animate-pulse" />
+          <span className="inline-block w-16 h-4 bg-[#d2cecb] rounded animate-pulse" />
         ) : budget ? (
           fmtINR(budget.spent)
         ) : (
@@ -62,10 +70,10 @@ function BudgetRow({
       </td>
       <td className="px-4 py-3 w-48">
         {isLoading ? (
-          <div className="h-3 bg-gray-100 rounded animate-pulse" />
+          <div className="h-3 bg-[#d2cecb] rounded animate-pulse" />
         ) : budget ? (
           <div className="flex items-center gap-2">
-            <div className="flex-1 h-2 bg-neutral-100 rounded-full overflow-hidden">
+            <div className="flex-1 h-2 bg-[#d2cecb] rounded-full overflow-hidden">
               <div
                 className={`h-full rounded-full transition-all ${barColor(budget)}`}
                 style={{
@@ -79,7 +87,7 @@ function BudgetRow({
                   ? "text-red-600"
                   : budget.is_over_threshold
                   ? "text-amber-600"
-                  : "text-neutral-600"
+                  : "text-[#6e6a68]"
               }`}
             >
               {budget.utilization_pct.toFixed(0)}%
@@ -89,7 +97,7 @@ function BudgetRow({
           "—"
         )}
       </td>
-      <td className="px-4 py-3 text-xs text-neutral-400">
+      <td className="px-4 py-3 text-xs text-[#6e6a68]">
         {dept.alert_threshold_pct}%
       </td>
       {isAdmin && (
@@ -97,7 +105,7 @@ function BudgetRow({
           <div className="flex justify-end gap-3">
             <button
               onClick={() => onEdit(dept)}
-              className="text-xs text-blue-600 hover:underline"
+              className="text-xs text-spring hover:underline"
             >
               Edit
             </button>
@@ -110,7 +118,7 @@ function BudgetRow({
           </div>
         </td>
       )}
-    </tr>
+    </motion.tr>
   );
 }
 
@@ -164,22 +172,22 @@ function DeptDialog({ initial, onClose }: DeptDialogProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-4">
-        <h2 className="text-lg font-semibold">
+        <h2 className="text-lg font-semibold text-[#0c0a08]">
           {isEdit ? "Edit department" : "Add department"}
         </h2>
         <form onSubmit={onSubmit} className="space-y-3">
           <label className="block">
-            <span className="text-sm text-neutral-600">Name</span>
+            <span className="text-sm text-[#6e6a68]">Name</span>
             <input
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Engineering"
-              className="mt-1 w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+              className="mt-1 w-full border border-[#d2cecb] rounded-[6px] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-solar/50"
             />
           </label>
           <label className="block">
-            <span className="text-sm text-neutral-600">Monthly budget (INR)</span>
+            <span className="text-sm text-[#6e6a68]">Monthly budget (INR)</span>
             <input
               required
               type="number"
@@ -187,13 +195,11 @@ function DeptDialog({ initial, onClose }: DeptDialogProps) {
               step="0.01"
               value={budget}
               onChange={(e) => setBudget(e.target.value)}
-              className="mt-1 w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+              className="mt-1 w-full border border-[#d2cecb] rounded-[6px] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-solar/50"
             />
           </label>
           <label className="block">
-            <span className="text-sm text-neutral-600">
-              Alert threshold (%)
-            </span>
+            <span className="text-sm text-[#6e6a68]">Alert threshold (%)</span>
             <input
               required
               type="number"
@@ -201,7 +207,7 @@ function DeptDialog({ initial, onClose }: DeptDialogProps) {
               max="100"
               value={threshold}
               onChange={(e) => setThreshold(e.target.value)}
-              className="mt-1 w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+              className="mt-1 w-full border border-[#d2cecb] rounded-[6px] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-solar/50"
             />
           </label>
 
@@ -216,14 +222,14 @@ function DeptDialog({ initial, onClose }: DeptDialogProps) {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-2 rounded-md border text-sm text-neutral-700 hover:bg-neutral-50"
+              className="flex-1 py-2 rounded-[6px] border border-[#d2cecb] text-sm text-[#0c0a08] hover:bg-[#f4f2f0]"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isPending}
-              className="flex-1 py-2 rounded-md bg-neutral-900 text-white text-sm font-medium disabled:opacity-50"
+              className="flex-1 py-2 rounded-[6px] bg-solar text-[#0c0a08] text-sm font-semibold hover:bg-solar-light disabled:opacity-50"
             >
               {isPending ? "Saving…" : isEdit ? "Save" : "Create"}
             </button>
@@ -258,9 +264,9 @@ function DeleteConfirm({ dept, onClose }: DeleteConfirmProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4">
-        <h2 className="text-lg font-semibold">Delete department?</h2>
-        <p className="text-sm text-neutral-600">
-          <span className="font-medium">{dept.name}</span> will be permanently
+        <h2 className="text-lg font-semibold text-[#0c0a08]">Delete department?</h2>
+        <p className="text-sm text-[#6e6a68]">
+          <span className="font-medium text-[#0c0a08]">{dept.name}</span> will be permanently
           deleted. This cannot be undone.
         </p>
         {del.isError && (
@@ -272,14 +278,14 @@ function DeleteConfirm({ dept, onClose }: DeleteConfirmProps) {
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 py-2 rounded-md border text-sm text-neutral-700 hover:bg-neutral-50"
+            className="flex-1 py-2 rounded-[6px] border border-[#d2cecb] text-sm text-[#0c0a08] hover:bg-[#f4f2f0]"
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
             disabled={del.isPending}
-            className="flex-1 py-2 rounded-md bg-red-600 text-white text-sm font-medium hover:bg-red-700 disabled:opacity-50"
+            className="flex-1 py-2 rounded-[6px] bg-red-600 text-white text-sm font-medium hover:bg-red-700 disabled:opacity-50"
           >
             {del.isPending ? "Deleting…" : "Delete"}
           </button>
@@ -305,11 +311,11 @@ export function DepartmentsPage() {
   return (
     <div className="p-8 max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight">Departments</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-[#0c0a08]">Departments</h1>
         {isAdmin && (
           <button
             onClick={() => setShowCreate(true)}
-            className="px-4 py-2 rounded-md bg-neutral-900 text-white text-sm font-medium hover:bg-neutral-800"
+            className="px-4 py-2 rounded-[6px] bg-solar text-[#0c0a08] text-sm font-semibold hover:bg-solar-light"
           >
             + Add department
           </button>
@@ -317,7 +323,7 @@ export function DepartmentsPage() {
       </div>
 
       {isLoading ? (
-        <p className="text-neutral-500">Loading…</p>
+        <p className="text-[#6e6a68]">Loading…</p>
       ) : depts.length === 0 ? (
         <EmptyState
           title="No departments yet"
@@ -328,9 +334,9 @@ export function DepartmentsPage() {
           }
         />
       ) : (
-        <div className="border rounded-lg overflow-hidden bg-white">
+        <div className="border border-[#d2cecb] rounded-lg overflow-hidden bg-white">
           <table className="w-full text-sm">
-            <thead className="bg-neutral-50 text-xs uppercase tracking-wide text-neutral-500">
+            <thead className="bg-[#f4f2f0] text-xs uppercase tracking-wide text-[#6e6a68]">
               <tr>
                 <th className="px-4 py-3 text-left">Department</th>
                 <th className="px-4 py-3 text-right">Monthly budget</th>
@@ -342,14 +348,15 @@ export function DepartmentsPage() {
                 )}
               </tr>
             </thead>
-            <tbody className="divide-y divide-neutral-100">
-              {depts.map((d) => (
+            <tbody className="divide-y divide-[#d2cecb]">
+              {depts.map((d, index) => (
                 <BudgetRow
                   key={d.id}
                   dept={d}
                   isAdmin={isAdmin}
                   onEdit={setEditDept}
                   onDelete={setDeleteDept}
+                  index={index}
                 />
               ))}
             </tbody>

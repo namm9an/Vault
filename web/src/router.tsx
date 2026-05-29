@@ -1,3 +1,4 @@
+import React from "react";
 import { createBrowserRouter } from "react-router-dom";
 import { RequireAuth } from "@/components/auth/RequireAuth";
 import { AppLayout } from "@/components/AppLayout";
@@ -12,6 +13,8 @@ import { ReimbursementsPage } from "@/pages/ReimbursementsPage";
 import { SettingsPage } from "@/pages/SettingsPage";
 import { TransactionsPage } from "@/pages/TransactionsPage";
 
+const LandingPage = React.lazy(() => import("@/pages/LandingPage").then(m => ({ default: m.LandingPage })));
+
 function ProtectedLayout({ children }: { children: React.ReactNode }) {
   return (
     <RequireAuth>
@@ -23,8 +26,13 @@ function ProtectedLayout({ children }: { children: React.ReactNode }) {
 export const router = createBrowserRouter([
   { path: "/login", element: <LoginPage /> },
   { path: "/signup", element: <SignupPage /> },
+  { path: "/", element: (
+    <React.Suspense fallback={<div className="min-h-screen bg-[#f4f2f0]" />}>
+      <LandingPage />
+    </React.Suspense>
+  )},
   {
-    path: "/",
+    path: "/dashboard",
     element: <ProtectedLayout><DashboardPage /></ProtectedLayout>,
   },
   {

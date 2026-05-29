@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { useMe } from "@/features/auth/hooks";
 import {
   useCards,
@@ -9,13 +10,8 @@ import {
 } from "@/features/cards/hooks";
 import { useUsers } from "@/features/users/hooks";
 import { EmptyState } from "@/components/EmptyState";
+import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import type { Card, SpendCategory } from "@/types/api";
-
-const STATUS_COLORS: Record<string, string> = {
-  ACTIVE: "bg-green-100 text-green-800",
-  FROZEN: "bg-yellow-100 text-yellow-800",
-  CANCELLED: "bg-red-100 text-red-800",
-};
 
 const ALL_CATEGORIES: SpendCategory[] = [
   "TRAVEL", "MEALS", "SAAS", "OFFICE", "MARKETING", "HARDWARE", "PROFESSIONAL_SERVICES", "OTHER",
@@ -59,15 +55,15 @@ function NewCardDialog({ onClose }: NewCardDialogProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-4">
-        <h2 className="text-lg font-semibold">Issue new card</h2>
+        <h2 className="text-lg font-semibold text-[#0c0a08]">Issue new card</h2>
         <form onSubmit={onSubmit} className="space-y-3">
           <label className="block">
-            <span className="text-sm text-neutral-600">Assign to</span>
+            <span className="text-sm text-[#6e6a68]">Assign to</span>
             <select
               required
               value={userId}
               onChange={(e) => setUserId(e.target.value)}
-              className="mt-1 w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+              className="mt-1 w-full border border-[#d2cecb] rounded-[6px] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-solar/50"
             >
               <option value="">Select user…</option>
               {users.map((u) => (
@@ -76,41 +72,41 @@ function NewCardDialog({ onClose }: NewCardDialogProps) {
             </select>
           </label>
           <label className="block">
-            <span className="text-sm text-neutral-600">Nickname</span>
+            <span className="text-sm text-[#6e6a68]">Nickname</span>
             <input
               required
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
               placeholder="e.g. Marketing card"
-              className="mt-1 w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+              className="mt-1 w-full border border-[#d2cecb] rounded-[6px] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-solar/50"
             />
           </label>
           <div className="grid grid-cols-2 gap-3">
             <label className="block">
-              <span className="text-sm text-neutral-600">Daily limit (₹)</span>
+              <span className="text-sm text-[#6e6a68]">Daily limit (₹)</span>
               <input
                 required
                 type="number"
                 min="0"
                 value={daily}
                 onChange={(e) => setDaily(e.target.value)}
-                className="mt-1 w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                className="mt-1 w-full border border-[#d2cecb] rounded-[6px] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-solar/50"
               />
             </label>
             <label className="block">
-              <span className="text-sm text-neutral-600">Monthly limit (₹)</span>
+              <span className="text-sm text-[#6e6a68]">Monthly limit (₹)</span>
               <input
                 required
                 type="number"
                 min="0"
                 value={monthly}
                 onChange={(e) => setMonthly(e.target.value)}
-                className="mt-1 w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                className="mt-1 w-full border border-[#d2cecb] rounded-[6px] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-solar/50"
               />
             </label>
           </div>
           <div>
-            <span className="text-sm text-neutral-600">Category restrictions (leave empty = all allowed)</span>
+            <span className="text-sm text-[#6e6a68]">Category restrictions (leave empty = all allowed)</span>
             <div className="mt-1 flex flex-wrap gap-2">
               {ALL_CATEGORIES.map((c) => (
                 <button
@@ -119,8 +115,8 @@ function NewCardDialog({ onClose }: NewCardDialogProps) {
                   onClick={() => toggleCat(c)}
                   className={`px-2 py-0.5 rounded text-xs border transition-colors ${
                     categories.includes(c)
-                      ? "bg-blue-600 text-white border-blue-600"
-                      : "bg-white text-neutral-700 border-neutral-300 hover:border-blue-400"
+                      ? "bg-solar text-[#0c0a08] border-solar"
+                      : "bg-white text-[#6e6a68] border-[#d2cecb] hover:border-solar"
                   }`}
                 >
                   {c}
@@ -137,14 +133,14 @@ function NewCardDialog({ onClose }: NewCardDialogProps) {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-2 rounded-md border text-sm text-neutral-700 hover:bg-neutral-50"
+              className="flex-1 py-2 rounded-[6px] border border-[#d2cecb] text-sm text-[#0c0a08] hover:bg-[#f4f2f0]"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={create.isPending}
-              className="flex-1 py-2 rounded-md bg-neutral-900 text-white text-sm font-medium disabled:opacity-50"
+              className="flex-1 py-2 rounded-[6px] bg-solar text-[#0c0a08] text-sm font-semibold hover:bg-solar-light disabled:opacity-50"
             >
               {create.isPending ? "Creating…" : "Issue card"}
             </button>
@@ -171,20 +167,20 @@ function ConfirmDialog({ title, body, confirmLabel, danger, onConfirm, onClose, 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4">
-        <h2 className="text-lg font-semibold">{title}</h2>
-        <p className="text-sm text-neutral-600">{body}</p>
+        <h2 className="text-lg font-semibold text-[#0c0a08]">{title}</h2>
+        <p className="text-sm text-[#6e6a68]">{body}</p>
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 py-2 rounded-md border text-sm text-neutral-700 hover:bg-neutral-50"
+            className="flex-1 py-2 rounded-[6px] border border-[#d2cecb] text-sm text-[#0c0a08] hover:bg-[#f4f2f0]"
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
             disabled={isPending}
-            className={`flex-1 py-2 rounded-md text-white text-sm font-medium disabled:opacity-50 ${
-              danger ? "bg-red-600 hover:bg-red-700" : "bg-neutral-900 hover:bg-neutral-800"
+            className={`flex-1 py-2 rounded-[6px] text-sm font-medium disabled:opacity-50 ${
+              danger ? "bg-red-600 text-white hover:bg-red-700" : "bg-solar text-[#0c0a08] hover:bg-solar-light"
             }`}
           >
             {isPending ? "…" : confirmLabel}
@@ -228,11 +224,11 @@ export function CardsPage() {
   return (
     <div className="p-8 max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight">Cards</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-[#0c0a08]">Cards</h1>
         {isAdmin && (
           <button
             onClick={() => setShowNew(true)}
-            className="px-4 py-2 rounded-md bg-neutral-900 text-white text-sm font-medium hover:bg-neutral-800"
+            className="px-4 py-2 rounded-[6px] bg-solar text-[#0c0a08] text-sm font-semibold hover:bg-solar-light"
           >
             + Issue card
           </button>
@@ -240,16 +236,16 @@ export function CardsPage() {
       </div>
 
       {isLoading ? (
-        <p className="text-neutral-500">Loading…</p>
+        <p className="text-[#6e6a68]">Loading…</p>
       ) : cards.length === 0 ? (
         <EmptyState
           title="No cards yet"
           description="Issue a virtual card to get started."
         />
       ) : (
-        <div className="border rounded-lg overflow-hidden bg-white">
+        <div className="border border-[#d2cecb] rounded-lg overflow-hidden bg-white">
           <table className="w-full text-sm">
-            <thead className="bg-neutral-50 text-xs uppercase tracking-wide text-neutral-500">
+            <thead className="bg-[#f4f2f0] text-xs uppercase tracking-wide text-[#6e6a68]">
               <tr>
                 <th className="px-4 py-3 text-left">Card</th>
                 <th className="px-4 py-3 text-left">Status</th>
@@ -259,25 +255,31 @@ export function CardsPage() {
                 {isAdmin && <th className="px-4 py-3 text-right">Actions</th>}
               </tr>
             </thead>
-            <tbody className="divide-y divide-neutral-100">
-              {cards.map((card) => (
-                <tr key={card.id} className="hover:bg-neutral-50">
+            <tbody className="divide-y divide-[#d2cecb]">
+              {cards.map((card, index) => (
+                <motion.tr
+                  key={card.id}
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.03, duration: 0.2 }}
+                  className="hover:bg-[#f4f2f0]"
+                >
                   <td className="px-4 py-3">
-                    <div className="font-medium">{card.nickname}</div>
-                    <div className="text-neutral-400 text-xs">•••• {card.last_four}</div>
+                    <div className="font-medium text-[#0c0a08]">{card.nickname}</div>
+                    <div className="text-[#6e6a68] text-xs">•••• {card.last_four}</div>
                   </td>
                   <td className="px-4 py-3">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[card.status] ?? ""}`}>
+                    <Badge variant={card.status as BadgeVariant}>
                       {card.status}
-                    </span>
+                    </Badge>
                   </td>
-                  <td className="px-4 py-3 text-right font-mono">{fmt(card.daily_limit)}</td>
-                  <td className="px-4 py-3 text-right font-mono">{fmt(card.monthly_limit)}</td>
+                  <td className="px-4 py-3 text-right font-mono text-[#0c0a08]">{fmt(card.daily_limit)}</td>
+                  <td className="px-4 py-3 text-right font-mono text-[#0c0a08]">{fmt(card.monthly_limit)}</td>
                   <td className="px-4 py-3">
                     {card.category_restrictions.length === 0 ? (
-                      <span className="text-neutral-400 text-xs">All</span>
+                      <span className="text-[#6e6a68] text-xs">All</span>
                     ) : (
-                      <span className="text-xs text-neutral-600">{card.category_restrictions.join(", ")}</span>
+                      <span className="text-xs text-[#6e6a68]">{card.category_restrictions.join(", ")}</span>
                     )}
                   </td>
                   {isAdmin && (
@@ -310,7 +312,7 @@ export function CardsPage() {
                       </div>
                     </td>
                   )}
-                </tr>
+                </motion.tr>
               ))}
             </tbody>
           </table>

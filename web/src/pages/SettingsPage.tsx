@@ -6,7 +6,7 @@ import type { User, UserRole } from "@/types/api";
 const ROLE_COLORS: Record<UserRole, string> = {
   ADMIN: "bg-purple-100 text-purple-800",
   FINANCE_MANAGER: "bg-blue-100 text-blue-800",
-  EMPLOYEE: "bg-neutral-100 text-neutral-700",
+  EMPLOYEE: "bg-[#f4f2f0] text-[#6e6a68]",
 };
 
 const ALL_ROLES: UserRole[] = ["ADMIN", "FINANCE_MANAGER", "EMPLOYEE"];
@@ -33,31 +33,31 @@ function InviteDialog({ onClose }: InviteDialogProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-4">
-        <h2 className="text-lg font-semibold">Invite team member</h2>
+        <h2 className="text-lg font-semibold text-[#0c0a08]">Invite team member</h2>
         <form onSubmit={onSubmit} className="space-y-3">
           <label className="block">
-            <span className="text-sm text-neutral-600">Full name</span>
+            <span className="text-sm text-[#6e6a68]">Full name</span>
             <input
               required
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               placeholder="Alice Sharma"
-              className="mt-1 w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+              className="mt-1 w-full border border-[#d2cecb] rounded-[6px] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-solar/50 focus:border-solar"
             />
           </label>
           <label className="block">
-            <span className="text-sm text-neutral-600">Email</span>
+            <span className="text-sm text-[#6e6a68]">Email</span>
             <input
               required
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="alice@acme.com"
-              className="mt-1 w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+              className="mt-1 w-full border border-[#d2cecb] rounded-[6px] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-solar/50 focus:border-solar"
             />
           </label>
           <label className="block">
-            <span className="text-sm text-neutral-600">Temporary password</span>
+            <span className="text-sm text-[#6e6a68]">Temporary password</span>
             <input
               required
               type="password"
@@ -65,15 +65,15 @@ function InviteDialog({ onClose }: InviteDialogProps) {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Min 8 characters"
-              className="mt-1 w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+              className="mt-1 w-full border border-[#d2cecb] rounded-[6px] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-solar/50 focus:border-solar"
             />
           </label>
           <label className="block">
-            <span className="text-sm text-neutral-600">Role</span>
+            <span className="text-sm text-[#6e6a68]">Role</span>
             <select
               value={role}
               onChange={(e) => setRole(e.target.value as UserRole)}
-              className="mt-1 w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+              className="mt-1 w-full border border-[#d2cecb] rounded-[6px] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-solar/50"
             >
               {ALL_ROLES.map((r) => (
                 <option key={r} value={r}>{r.replace("_", " ")}</option>
@@ -89,14 +89,14 @@ function InviteDialog({ onClose }: InviteDialogProps) {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-2 rounded-md border text-sm text-neutral-700 hover:bg-neutral-50"
+              className="flex-1 py-2 rounded-[6px] border border-[#d2cecb] text-sm text-[#0c0a08] hover:bg-[#f4f2f0]"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={invite.isPending}
-              className="flex-1 py-2 rounded-md bg-neutral-900 text-white text-sm font-medium disabled:opacity-50"
+              className="flex-1 py-2 rounded-[6px] bg-solar text-[#0c0a08] text-sm font-semibold hover:bg-solar-light disabled:opacity-50"
             >
               {invite.isPending ? "Inviting…" : "Invite"}
             </button>
@@ -129,15 +129,15 @@ function RoleDialog({ user, onClose }: RoleDialogProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4">
-        <h2 className="text-lg font-semibold">Change role</h2>
-        <p className="text-sm text-neutral-500">{user.full_name} ({user.email})</p>
+        <h2 className="text-lg font-semibold text-[#0c0a08]">Change role</h2>
+        <p className="text-sm text-[#6e6a68]">{user.full_name} ({user.email})</p>
         <form onSubmit={onSubmit} className="space-y-3">
           <label className="block">
-            <span className="text-sm text-neutral-600">New role</span>
+            <span className="text-sm text-[#6e6a68]">New role</span>
             <select
               value={role}
               onChange={(e) => setRole(e.target.value as UserRole)}
-              className="mt-1 w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+              className="mt-1 w-full border border-[#d2cecb] rounded-[6px] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-solar/50"
             >
               {ALL_ROLES.map((r) => (
                 <option key={r} value={r}>{r.replace("_", " ")}</option>
@@ -153,14 +153,14 @@ function RoleDialog({ user, onClose }: RoleDialogProps) {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-2 rounded-md border text-sm text-neutral-700 hover:bg-neutral-50"
+              className="flex-1 py-2 rounded-[6px] border border-[#d2cecb] text-sm text-[#0c0a08] hover:bg-[#f4f2f0]"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={update.isPending || role === user.role}
-              className="flex-1 py-2 rounded-md bg-neutral-900 text-white text-sm font-medium disabled:opacity-50"
+              className="flex-1 py-2 rounded-[6px] bg-solar text-[#0c0a08] text-sm font-semibold hover:bg-solar-light disabled:opacity-50"
             >
               {update.isPending ? "Saving…" : "Save"}
             </button>
@@ -200,11 +200,11 @@ export function SettingsPage() {
   return (
     <div className="p-8 max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-[#0c0a08]">Settings</h1>
         {isAdmin && (
           <button
             onClick={() => setShowInvite(true)}
-            className="px-4 py-2 rounded-md bg-neutral-900 text-white text-sm font-medium hover:bg-neutral-800"
+            className="px-4 py-2 rounded-[6px] bg-solar text-[#0c0a08] text-sm font-semibold hover:bg-solar-light"
           >
             + Invite member
           </button>
@@ -212,13 +212,13 @@ export function SettingsPage() {
       </div>
 
       <section>
-        <h2 className="text-base font-medium text-neutral-700 mb-3">Team members</h2>
+        <h2 className="text-base font-medium text-[#6e6a68] mb-3">Team members</h2>
         {isLoading ? (
-          <p className="text-neutral-500">Loading…</p>
+          <p className="text-[#6e6a68]">Loading…</p>
         ) : (
-          <div className="border rounded-lg overflow-hidden bg-white">
+          <div className="border border-[#d2cecb] rounded-lg overflow-hidden bg-white">
             <table className="w-full text-sm">
-              <thead className="bg-neutral-50 text-xs uppercase tracking-wide text-neutral-500">
+              <thead className="bg-[#f4f2f0] text-xs uppercase tracking-wide text-[#6e6a68]">
                 <tr>
                   <th className="px-4 py-3 text-left">Name</th>
                   <th className="px-4 py-3 text-left">Email</th>
@@ -227,16 +227,16 @@ export function SettingsPage() {
                   {isAdmin && <th className="px-4 py-3 text-right">Actions</th>}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-neutral-100">
+              <tbody className="divide-y divide-[#d2cecb]">
                 {users.map((user) => (
-                  <tr key={user.id} className="hover:bg-neutral-50">
-                    <td className="px-4 py-3 font-medium">
+                  <tr key={user.id} className="hover:bg-[#f4f2f0]">
+                    <td className="px-4 py-3 font-medium text-[#0c0a08]">
                       {user.full_name}
                       {user.id === myId && (
-                        <span className="ml-2 text-xs text-neutral-400">(you)</span>
+                        <span className="ml-2 text-xs text-[#6e6a68]">(you)</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-neutral-600">{user.email}</td>
+                    <td className="px-4 py-3 text-[#6e6a68]">{user.email}</td>
                     <td className="px-4 py-3">
                       <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${ROLE_COLORS[user.role]}`}>
                         {user.role.replace("_", " ")}
@@ -244,7 +244,7 @@ export function SettingsPage() {
                     </td>
                     <td className="px-4 py-3">
                       <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                        user.is_active ? "bg-green-100 text-green-800" : "bg-neutral-100 text-neutral-500"
+                        user.is_active ? "bg-green-100 text-green-800" : "bg-[#f4f2f0] text-[#6e6a68]"
                       }`}>
                         {user.is_active ? "Active" : "Inactive"}
                       </span>

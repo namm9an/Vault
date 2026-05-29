@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMe } from "@/features/auth/hooks";
 import { useDigests, useGenerateDigest } from "@/features/digest/hooks";
 import { EmptyState } from "@/components/EmptyState";
+import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import type { Digest, DigestStatus } from "@/types/api";
 
 // ---------------------------------------------------------------------------
@@ -9,28 +10,14 @@ import type { Digest, DigestStatus } from "@/types/api";
 // ---------------------------------------------------------------------------
 
 function Skeleton({ className = "" }: { className?: string }) {
-  return <div className={`bg-neutral-100 rounded animate-pulse ${className}`} />;
+  return <div className={`bg-[#d2cecb] rounded animate-pulse ${className}`} />;
 }
 
 function statusBadge(status: DigestStatus) {
-  if (status === "COMPLETED") {
-    return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
-        Completed
-      </span>
-    );
-  }
-  if (status === "PENDING") {
-    return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
-        Pending
-      </span>
-    );
-  }
   return (
-    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
-      Failed
-    </span>
+    <Badge variant={status as BadgeVariant}>
+      {status === "COMPLETED" ? "Completed" : status === "PENDING" ? "Pending" : "Failed"}
+    </Badge>
   );
 }
 
@@ -71,44 +58,44 @@ function GenerateModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
-        <h2 className="text-base font-semibold text-neutral-900 mb-4">
+        <h2 className="text-base font-semibold text-[#0c0a08] mb-4">
           Generate Weekly Digest
         </h2>
         <div className="space-y-3">
           <div>
-            <label className="block text-xs font-medium text-neutral-600 mb-1">
+            <label className="block text-xs font-medium text-[#6e6a68] mb-1">
               Period start
             </label>
             <input
               type="date"
               value={start}
               onChange={(e) => setStart(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full border border-[#d2cecb] rounded-[6px] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-solar/50 focus:border-solar"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-neutral-600 mb-1">
+            <label className="block text-xs font-medium text-[#6e6a68] mb-1">
               Period end
             </label>
             <input
               type="date"
               value={end}
               onChange={(e) => setEnd(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full border border-[#d2cecb] rounded-[6px] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-solar/50 focus:border-solar"
             />
           </div>
         </div>
         <div className="flex gap-2 mt-5">
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-2 rounded-lg border text-sm font-medium text-neutral-600 hover:bg-neutral-50"
+            className="flex-1 px-4 py-2 rounded-[6px] border border-[#d2cecb] text-sm font-medium text-[#6e6a68] hover:bg-[#f4f2f0]"
           >
             Cancel
           </button>
           <button
             disabled={loading || !start || !end || start >= end}
             onClick={() => start && end && onGenerate(start, end)}
-            className="flex-1 px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 px-4 py-2 rounded-[6px] bg-solar text-[#0c0a08] text-sm font-semibold hover:bg-solar-light disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? "Generating…" : "Generate"}
           </button>
@@ -128,12 +115,12 @@ function DigestDetail({ digest }: { digest: Digest }) {
       <div>
         <div className="flex items-center gap-2 mb-1">
           {statusBadge(digest.status)}
-          <span className="text-xs text-neutral-400">
+          <span className="text-xs text-[#6e6a68]">
             {fmtDate(digest.period_start)} – {fmtDate(digest.period_end)}
           </span>
         </div>
         {digest.headline ? (
-          <h2 className="text-lg font-semibold text-neutral-900 mt-2">
+          <h2 className="text-lg font-semibold text-[#0c0a08] mt-2">
             {digest.headline}
           </h2>
         ) : digest.status === "FAILED" ? (
@@ -141,16 +128,16 @@ function DigestDetail({ digest }: { digest: Digest }) {
             Digest generation failed. Try regenerating.
           </p>
         ) : (
-          <p className="text-sm text-neutral-400 mt-2">No headline available.</p>
+          <p className="text-sm text-[#6e6a68] mt-2">No headline available.</p>
         )}
       </div>
 
       {digest.body && (
         <div>
-          <h3 className="text-xs uppercase tracking-wide text-neutral-400 font-medium mb-2">
+          <h3 className="text-xs uppercase tracking-wide text-[#6e6a68] font-medium mb-2">
             Summary
           </h3>
-          <p className="text-sm text-neutral-700 leading-relaxed whitespace-pre-line">
+          <p className="text-sm text-[#0c0a08] leading-relaxed whitespace-pre-line">
             {digest.body}
           </p>
         </div>
@@ -158,13 +145,13 @@ function DigestDetail({ digest }: { digest: Digest }) {
 
       {digest.top_recommendations && digest.top_recommendations.length > 0 && (
         <div>
-          <h3 className="text-xs uppercase tracking-wide text-neutral-400 font-medium mb-2">
+          <h3 className="text-xs uppercase tracking-wide text-[#6e6a68] font-medium mb-2">
             Recommendations
           </h3>
           <ul className="space-y-2">
             {digest.top_recommendations.map((rec, i) => (
-              <li key={i} className="flex gap-2 text-sm text-neutral-700">
-                <span className="text-indigo-500 font-bold flex-shrink-0">{i + 1}.</span>
+              <li key={i} className="flex gap-2 text-sm text-[#0c0a08]">
+                <span className="text-solar font-bold flex-shrink-0">{i + 1}.</span>
                 {rec}
               </li>
             ))}
@@ -174,7 +161,7 @@ function DigestDetail({ digest }: { digest: Digest }) {
 
       {digest.flagged_items && digest.flagged_items.length > 0 && (
         <div>
-          <h3 className="text-xs uppercase tracking-wide text-neutral-400 font-medium mb-2">
+          <h3 className="text-xs uppercase tracking-wide text-[#6e6a68] font-medium mb-2">
             Flagged Items
           </h3>
           <div className="space-y-2">
@@ -245,13 +232,13 @@ export function DigestPage() {
       )}
 
       {/* Left: digest list */}
-      <div className="w-72 flex-shrink-0 border-r bg-white flex flex-col">
-        <div className="flex items-center justify-between px-4 py-4 border-b">
-          <h1 className="text-sm font-semibold text-neutral-900">Digests</h1>
+      <div className="w-72 flex-shrink-0 border-r border-[#d2cecb] bg-white flex flex-col">
+        <div className="flex items-center justify-between px-4 py-4 border-b border-[#d2cecb]">
+          <h1 className="text-sm font-semibold text-[#0c0a08]">Digests</h1>
           {isAdmin && (
             <button
               onClick={() => setShowModal(true)}
-              className="text-xs px-3 py-1.5 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700"
+              className="text-xs px-3 py-1.5 rounded-[6px] bg-solar text-[#0c0a08] font-semibold hover:bg-solar-light"
             >
               Generate
             </button>
@@ -275,27 +262,27 @@ export function DigestPage() {
               }
             />
           ) : (
-            <ul className="divide-y">
+            <ul className="divide-y divide-[#d2cecb]">
               {digests.data.map((d) => (
                 <li key={d.id}>
                   <button
                     onClick={() => setSelectedId(d.id)}
-                    className={`w-full text-left px-4 py-3 hover:bg-neutral-50 transition-colors ${
-                      selectedId === d.id ? "bg-indigo-50" : ""
+                    className={`w-full text-left px-4 py-3 hover:bg-[#f4f2f0] transition-colors ${
+                      selectedId === d.id ? "bg-[#f4f2f0]" : ""
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs text-neutral-500">
+                      <span className="text-xs text-[#6e6a68]">
                         {fmtDate(d.period_start)} – {fmtDate(d.period_end)}
                       </span>
                       {statusBadge(d.status)}
                     </div>
                     {d.headline ? (
-                      <p className="text-sm text-neutral-800 line-clamp-2">
+                      <p className="text-sm text-[#0c0a08] line-clamp-2">
                         {d.headline}
                       </p>
                     ) : (
-                      <p className="text-sm text-neutral-400 italic">
+                      <p className="text-sm text-[#6e6a68] italic">
                         {d.status === "PENDING" ? "Generating…" : "No headline"}
                       </p>
                     )}
@@ -308,7 +295,7 @@ export function DigestPage() {
       </div>
 
       {/* Right: detail panel */}
-      <div className="flex-1 overflow-y-auto bg-neutral-50">
+      <div className="flex-1 overflow-y-auto bg-[#f4f2f0]">
         {selected ? (
           <DigestDetail digest={selected} />
         ) : (
