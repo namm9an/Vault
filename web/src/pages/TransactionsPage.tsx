@@ -508,16 +508,6 @@ export function TransactionsPage() {
 
         <input
           type="date"
-          value={filters.from_date ? new Date(filters.from_date).toISOString().split("T")[0] : ""}
-          onChange={(e) => {
-            if (!e.target.value) { setFilter("from_date", undefined); return; }
-            setFilter("from_date", new Date(e.target.value + "T00:00:00").toISOString());
-          }}
-          className="border border-[#d2cecb] rounded-[6px] px-3 py-1.5 text-sm"
-          placeholder="From date"
-        />
-        <input
-          type="date"
           value={filters.to_date ? new Date(filters.to_date).toISOString().split("T")[0] : ""}
           onChange={(e) => {
             if (!e.target.value) { setFilter("to_date", undefined); return; }
