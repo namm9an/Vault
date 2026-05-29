@@ -5,8 +5,8 @@ import { useLogin } from "@/features/auth/hooks";
 export function LoginPage() {
   const navigate = useNavigate();
   const login = useLogin();
-  const [email, setEmail] = useState("admin@acme.com");
-  const [password, setPassword] = useState("vault-demo-pass");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
