@@ -25,7 +25,7 @@ DEMO_ORG_SLUG = "acme"
 DEMO_PASSWORD = "vault-demo-pass"
 
 DEMO_USERS = [
-    ("admin@acme.com", "Alice Sharma", UserRole.ADMIN),
+    ("naman.moudgill@e2enetworks.com", "Naman Moudgill", UserRole.ADMIN),
     ("fm@acme.com", "Felix Mehta", UserRole.FINANCE_MANAGER),
     ("bob@acme.com", "Bob Patel", UserRole.EMPLOYEE),
     ("carol@acme.com", "Carol Singh", UserRole.EMPLOYEE),
