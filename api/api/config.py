@@ -47,6 +47,10 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str = ""
     SMTP_FROM: str = "digest@vault.local"
 
+    # Demo reset — set DEMO_RESET_ENABLED=true in .env.prod to enable the
+    # POST /api/v1/demo/reset endpoint without exposing it in non-demo environments.
+    DEMO_RESET_ENABLED: bool = False
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]

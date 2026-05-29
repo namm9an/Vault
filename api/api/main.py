@@ -17,6 +17,7 @@ from api.routers.policies import router as policies_router
 from api.routers.receipts import router as receipts_router
 from api.routers.reimbursements import router as reimbursements_router
 from api.routers.transactions import router as transactions_router
+from api.routers.demo import router as demo_router
 from api.routers.users import router as users_router
 
 settings = get_settings()
@@ -64,6 +65,7 @@ async def health() -> dict[str, str]:
 
 
 app.include_router(auth_router, prefix="/api/v1")
+app.include_router(demo_router, prefix="/api/v1")
 app.include_router(cards_router, prefix="/api/v1")
 app.include_router(dashboard_router, prefix="/api/v1")
 app.include_router(departments_router, prefix="/api/v1")

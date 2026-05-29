@@ -28,7 +28,10 @@ from api.models.audit_log import AuditLog
 from api.models.card import Card, CardStatus
 from api.models.department import Department
 from api.models.receipt import Receipt
+from sqlalchemy import func
+
 from api.models.transaction import (
+    PolicyVerdict,
     Transaction,
     TransactionEvent,
     TransactionPolicyResult,
@@ -248,7 +251,8 @@ async def create_transaction(scope: OrgScope, data: TransactionCreate) -> Transa
 async def list_transactions(
     scope: OrgScope,
     filters: TransactionFilters,
-) -> list[Transaction]:
+) -> list[tuple[Transaction, PolicyVerdict | None]]:
+    """Return transactions with the latest policy verdict per row (single batch join)."""
     q = select(Transaction).where(Transaction.org_id == scope.org_id)
 
     # EMPLOYEE sees only their own transactions.
@@ -275,8 +279,37 @@ async def list_transactions(
 
     # H3: bounded result set — default 50, max 200
     q = q.order_by(Transaction.occurred_at.desc()).limit(filters.limit).offset(filters.offset)
-    result = await scope.db.execute(q)
-    return list(result.scalars().all())
+    txns = list((await scope.db.execute(q)).scalars().all())
+
+    if not txns:
+        return []
+
+    # Batch-fetch the latest policy verdict for each transaction (single query).
+    txn_ids = [t.id for t in txns]
+    inner = (
+        select(
+            TransactionPolicyResult.transaction_id,
+            TransactionPolicyResult.verdict,
+            func.row_number()
+            .over(
+                partition_by=TransactionPolicyResult.transaction_id,
+                order_by=TransactionPolicyResult.created_at.desc(),
+            )
+            .label("rn"),
+        )
+        .where(TransactionPolicyResult.transaction_id.in_(txn_ids))
+        .subquery()
+    )
+    verdict_rows = (
+        await scope.db.execute(
+            select(inner.c.transaction_id, inner.c.verdict).where(inner.c.rn == 1)
+        )
+    ).all()
+    verdict_map: dict[UUID, PolicyVerdict] = {
+        row.transaction_id: row.verdict for row in verdict_rows
+    }
+
+    return [(t, verdict_map.get(t.id)) for t in txns]
 
 
 async def get_transaction(

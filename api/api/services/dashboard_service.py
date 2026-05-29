@@ -15,6 +15,7 @@ from api.config import get_settings
 from api.deps import OrgScope
 from api.models.card import Card, CardStatus
 from api.models.department import Department
+from api.models.reimbursement import Reimbursement, ReimbursementStatus
 from api.models.transaction import Transaction, TransactionState
 from api.schemas.dashboard import (
     CategorySpend,
@@ -126,13 +127,20 @@ async def get_summary(scope: OrgScope, from_date: datetime, to_date: datetime) -
         if prior_spend > 0:
             mom_delta_pct = float((total_spend - prior_spend) / prior_spend * 100)
 
-        # pending approvals (FLAGGED transactions awaiting FM review)
-        pending = (await scope.db.execute(
+        # pending approvals = FLAGGED transactions + POLICY_CHECKED reimbursements
+        flagged_txns = (await scope.db.execute(
             select(func.count()).select_from(Transaction).where(
                 Transaction.org_id == scope.org_id,
                 Transaction.state == TransactionState.FLAGGED,
             )
         )).scalar_one()
+        pending_reimbs = (await scope.db.execute(
+            select(func.count()).select_from(Reimbursement).where(
+                Reimbursement.org_id == scope.org_id,
+                Reimbursement.status == ReimbursementStatus.POLICY_CHECKED,
+            )
+        )).scalar_one()
+        pending = int(flagged_txns) + int(pending_reimbs)
 
         # active cards
         active_cards = (await scope.db.execute(

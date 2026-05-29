@@ -69,6 +69,8 @@ class TransactionOut(BaseModel):
     occurred_at: datetime
     created_at: datetime
     updated_at: datetime
+    # Populated by list_transactions() via a batch join — not a DB column.
+    policy_verdict: PolicyVerdict | None = None
 
 
 class TransactionEventOut(BaseModel):

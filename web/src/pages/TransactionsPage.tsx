@@ -552,7 +552,7 @@ export function TransactionsPage() {
           <table className="w-full text-sm">
             <thead className="bg-[#f4f2f0] border-b border-[#d2cecb]">
               <tr>
-                {["Date", "Merchant", "Amount", "Category", "State"].map((h) => (
+                {["Date", "Merchant", "Amount", "Category", "State", "Policy"].map((h) => (
                   <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-[#6e6a68] uppercase tracking-wide">
                     {h}
                   </th>
@@ -579,6 +579,11 @@ export function TransactionsPage() {
                   <td className="px-4 py-3 text-[#6e6a68]">{txn.category}</td>
                   <td className="px-4 py-3">
                     <StateBadge state={txn.state} />
+                  </td>
+                  <td className="px-4 py-3">
+                    {txn.policy_verdict ? (
+                      <VerdictBadge verdict={txn.policy_verdict} />
+                    ) : null}
                   </td>
                 </motion.tr>
               ))}

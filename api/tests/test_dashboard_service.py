@@ -66,8 +66,9 @@ async def test_summary_aggregates_totals():
     # 1. Main txn select
     # 2. Department names (because dept_id is non-null)
     # 3. Prior period spend (MoM delta)
-    # 4. Pending approvals count
-    # 5. Active cards count
+    # 4. Pending FLAGGED transactions count
+    # 5. Pending POLICY_CHECKED reimbursements count
+    # 6. Active cards count
     txns_result = MagicMock()
     txns_result.all.return_value = txn_rows
 
@@ -80,14 +81,18 @@ async def test_summary_aggregates_totals():
     prior_result = MagicMock()
     prior_result.scalar_one.return_value = Decimal("0")
 
-    pending_result = MagicMock()
-    pending_result.scalar_one.return_value = 2
+    pending_txn_result = MagicMock()
+    pending_txn_result.scalar_one.return_value = 2
+
+    pending_reimb_result = MagicMock()
+    pending_reimb_result.scalar_one.return_value = 0
 
     cards_result = MagicMock()
     cards_result.scalar_one.return_value = 4
 
     scope.db.execute = AsyncMock(side_effect=[
-        txns_result, dept_names_result, prior_result, pending_result, cards_result,
+        txns_result, dept_names_result, prior_result,
+        pending_txn_result, pending_reimb_result, cards_result,
     ])
 
     # Redis: cache miss on get, setex succeeds

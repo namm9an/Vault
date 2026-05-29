@@ -1,6 +1,9 @@
 import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMe } from "@/features/auth/hooks";
 import { useUsers, useInviteUser, useUpdateUser } from "@/features/users/hooks";
+import { useToast } from "@/components/Toast";
+import { api } from "@/lib/api";
 import type { User, UserRole } from "@/types/api";
 
 const ROLE_COLORS: Record<UserRole, string> = {
@@ -171,6 +174,69 @@ function RoleDialog({ user, onClose }: RoleDialogProps) {
   );
 }
 
+// ── Demo Reset ────────────────────────────────────────────────────────────────
+
+function useDemoReset() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (): Promise<{ status: string; transactions: number; reimbursements: number }> => {
+      const { data } = await api.post("/demo/reset");
+      return data;
+    },
+    onSuccess: () => {
+      // Invalidate everything so the UI reflects the fresh data
+      qc.invalidateQueries();
+    },
+  });
+}
+
+function ResetDemoConfirmModal({ onClose }: { onClose: () => void }) {
+  const reset = useDemoReset();
+  const { success, error } = useToast();
+
+  async function handleConfirm() {
+    try {
+      const result = await reset.mutateAsync();
+      success(`Demo reset complete — ${result.transactions} transactions reseeded`);
+      onClose();
+    } catch {
+      error("Demo reset failed — check server logs");
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-4">
+        <h2 className="text-lg font-semibold text-[#0c0a08]">Reset demo data?</h2>
+        <p className="text-sm text-[#6e6a68]">
+          This will permanently delete all transactions, reimbursements, digests, and
+          notifications for this org and replace them with the standard demo seed data.
+          Users, cards, and policies are preserved.
+        </p>
+        <p className="text-sm font-medium text-red-600">This action cannot be undone.</p>
+        <div className="flex gap-3 pt-1">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={reset.isPending}
+            className="flex-1 py-2 rounded-[6px] border border-[#d2cecb] text-sm text-[#0c0a08] hover:bg-[#f4f2f0] disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleConfirm}
+            disabled={reset.isPending}
+            className="flex-1 py-2 rounded-[6px] bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-50"
+          >
+            {reset.isPending ? "Resetting…" : "Yes, reset demo"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export function SettingsPage() {
@@ -181,6 +247,7 @@ export function SettingsPage() {
   const [showInvite, setShowInvite] = useState(false);
   const [roleTarget, setRoleTarget] = useState<User | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const isAdmin = me.data?.user.role === "ADMIN";
   const myId = me.data?.user.id;
@@ -286,8 +353,26 @@ export function SettingsPage() {
         <p className="mt-3 text-sm text-red-600">{actionError}</p>
       )}
 
+      {isAdmin && (
+        <section className="mt-10 pt-6 border-t border-[#d2cecb]">
+          <h2 className="text-base font-medium text-[#6e6a68] mb-1">Danger Zone</h2>
+          <p className="text-sm text-[#6e6a68] mb-4">
+            Reset all demo data to the original seeded state. Users, cards, and policies
+            are preserved. Transactions, reimbursements, digests, and notifications are wiped
+            and replaced with fresh demo data.
+          </p>
+          <button
+            onClick={() => setShowResetConfirm(true)}
+            className="px-4 py-2 text-sm rounded-[6px] border border-red-300 text-red-600 hover:bg-red-50 font-medium"
+          >
+            Reset Demo Data
+          </button>
+        </section>
+      )}
+
       {showInvite && <InviteDialog onClose={() => setShowInvite(false)} />}
       {roleTarget && <RoleDialog user={roleTarget} onClose={() => setRoleTarget(null)} />}
+      {showResetConfirm && <ResetDemoConfirmModal onClose={() => setShowResetConfirm(false)} />}
     </div>
   );
 }

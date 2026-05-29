@@ -35,8 +35,13 @@ async def list_transactions(
     filters: TransactionFilters = Depends(),
     scope: OrgScope = Depends(get_org_scope),
 ) -> list[TransactionOut]:
-    txns = await transaction_service.list_transactions(scope, filters)
-    return [TransactionOut.model_validate(t) for t in txns]
+    pairs = await transaction_service.list_transactions(scope, filters)
+    results: list[TransactionOut] = []
+    for txn, verdict in pairs:
+        out = TransactionOut.model_validate(txn)
+        out.policy_verdict = verdict
+        results.append(out)
+    return results
 
 
 @router.get("/{txn_id}", response_model=TransactionWithEvents)
