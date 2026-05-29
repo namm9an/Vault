@@ -8,6 +8,62 @@ Add new entries at the top.
 
 ---
 
+## [2026-05-29] — `.env.prod` committed to public GitHub repo
+
+**Symptom:** GitGuardian alert — "Generic Password exposed on GitHub" for `namm9an/Vault`, pushed 2026-05-29 06:43:33 UTC.
+
+**Root cause:** `.env.prod` was not in `.gitignore` (only `.env` and `.env.local` were listed). The production env file was created and committed as part of the Phase 7 deploy commit.
+
+**Fix:** (1) Added `.env.prod` to `.gitignore`. (2) Ran `git-filter-repo --path .env.prod --invert-paths --force` to purge the file from all history. (3) Force-pushed to GitHub. (4) Rotated the TIR endpoint from `is-10649` to `is-10708`. The token itself was not rotated (same JWT, different endpoint deployment).
+
+**Time lost:** ~45 minutes.
+
+**How to avoid next time:** Any file matching `*.env*` or `.env.*` should be in `.gitignore` from day one. The rule is: if it contains a secret, it never touches git. Use `.env.example` as the contract and `scp` to sync prod env to VM manually.
+
+---
+
+## [2026-05-29] — asyncpg DNS resolution failure in Docker during alembic migrations
+
+**Symptom:** `api` container crashed on startup with `socket.gaierror: [Errno -2] Name or service not known` during `alembic upgrade head`. The hostname `db` could not be resolved by asyncpg's `_create_ssl_connection` even though the `db` container was healthy and DNS worked fine in `docker compose run` containers.
+
+**Root cause:** asyncpg's `_create_ssl_connection` uses `asyncio.run_in_executor` + `socket.getaddrinfo`, which resolves DNS differently from the main-thread synchronous path. In the main service container (not a run container), Docker's embedded DNS (127.0.0.11) was not reachable from within asyncio's thread pool executor during early container startup.
+
+**Fix:** Added `psycopg2-binary==2.9.9` to `api/requirements.txt`. Rewrote `api/alembic/env.py` to use a synchronous `create_engine` (psycopg2) for migrations instead of `async_engine_from_config` (asyncpg). Alembic doesn't need async — sync is cleaner and avoids the DNS issue entirely.
+
+**Time lost:** ~2 hours of investigation.
+
+**How to avoid next time:** Always use a sync DB driver for Alembic migrations. Async drivers add no value for schema migrations and introduce subtle executor/DNS timing issues in Docker.
+
+---
+
+## [2026-05-29] — arq.crons import error — module is arq.cron (singular)
+
+**Symptom:** `worker` container crashed immediately with `ModuleNotFoundError: No module named 'arq.crons'`.
+
+**Root cause:** `api/api/jobs/worker.py` had `from arq.crons import cron` (plural). In arq 0.26.1 the module is `arq.cron` (singular).
+
+**Fix:** Changed to `from arq.cron import cron`.
+
+**Time lost:** 5 minutes.
+
+**How to avoid next time:** Check the arq changelog when pinning a version. The module was renamed between versions.
+
+---
+
+## [2026-05-29] — reseed_transactional() committed inside function, causing double-commit in demo reset endpoint
+
+**Symptom:** Demo reset endpoint returned 500 intermittently — "This Session's transaction has been rolled back due to a previous exception during flush" or similar SQLAlchemy session state errors.
+
+**Root cause:** `reseed_transactional()` called `await db.commit()` internally, but the docstring said "The caller is responsible for committing." The FastAPI request-scoped session in `reset_demo()` also tries to manage transaction state. Two commits on the same session caused state corruption on retry.
+
+**Fix:** Replaced `await db.commit()` with `await db.flush()` inside `reseed_transactional()`. Both callers (`run()` in seeds.py and `reset_demo()` in demo.py) now explicitly call `await db.commit()` after the function returns.
+
+**Time lost:** Caught in code review — zero runtime impact before fix.
+
+**How to avoid next time:** Functions that take a session parameter must never commit — that is the caller's responsibility. The docstring was correct; the implementation wasn't.
+
+---
+
 ## [2026-05-28] — Toast setTimeout IDs leaked on unmount — setState after unmount (L9 — low)
 
 **Symptom:** No visible crash in normal use. In tests or rapid navigation, React emitted `Can't perform a React state update on an unmounted component` warnings. Each toast started a 4-second `setTimeout` that tried to call `setToasts` even after `ToastProvider` was unmounted.

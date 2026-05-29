@@ -27,7 +27,7 @@ The seven Markdown files in this repo (`README.md` at repo root, plus `docs/ARCH
 - **Multi-tenancy:** every business table carries `org_id`. Enforced in `api/api/deps.py::get_current_user` — that dependency asserts `user.org_id == jwt.org_id` and is the *single* trust boundary. No row-level security in Postgres for the demo.
 - **Transaction state machine:** `INITIATED → POLICY_CHECKED → APPROVED | FLAGGED | BLOCKED → CLEARED → SETTLED`, with append-only `transaction_events` audit log on every transition. Phase 4: `create_transaction` commits INITIATED + POLICY_CHECKED then enqueues `run_policy_check` ARQ job (replaces the old sync stub).
 - **Roles:** `ADMIN`, `FINANCE_MANAGER`, `EMPLOYEE`. Enforced at the route layer via `require_role(*allowed)`.
-- **Timeline:** Tue 2026-05-26 → Mon 2026-06-01 EOD (demo). Solo dev + AI, ~8 hrs/day. Eight phases (6.5 added post-plan). **Phases 1–6 are complete** (see "Current state" below). **Phase 6.5 (Marketing landing page + App UI redesign, Ramp-parity) is next, followed by Phase 7 (Demo hardening).**
+- **Timeline:** Tue 2026-05-26 → Mon 2026-06-01 EOD (demo). Solo dev + AI, ~8 hrs/day. Eight phases (6.5 added post-plan). **ALL PHASES COMPLETE (1–7 + 6.5).** Production live at `http://101.53.140.68`. Smoke test 19/19 passing.
 
 **Working directory & layout:**
 - Primary working directory: `/Users/namanmoudgill13/Desktop/Vault/`
@@ -37,13 +37,15 @@ The seven Markdown files in this repo (`README.md` at repo root, plus `docs/ARCH
 - Compose: `docker-compose.yml` at repo root
 - Env: `.env` at repo root (gitignored — contains real TIR JWT). `.env.example` is the contract.
 
-**Current state (as of 2026-05-28 — verify before acting):**
+**Current state (as of 2026-05-29 — all phases complete):**
 - **Phase 1 complete.** Repo scaffolded; Docker Compose stack boots clean; Alembic baseline migration (`0001_baseline`) creates every table; `/health` returns `{db: ok, redis: ok, tir: configured}`; all auth endpoints working end-to-end; React app boots; LoginPage/SignupPage/DashboardPage functional; axios interceptor with 401-refresh-then-redirect implemented; React Query wired; seed script creates 1 org + 4 users.
 - **Phase 2 complete.** Cards CRUD with freeze/unfreeze/cancel + audit_log; users list/invite/update with RBAC; `OrgScope` dependency; 18 passing tests (deps + multi-tenancy); frontend CardsPage, SettingsPage, AppLayout; router updated with `/cards` and `/settings` routes. All live-verified via `docker compose` smoke tests.
 - **Phase 3 complete + post-phase bugs fixed.** Transaction state machine end-to-end. `TransactionService` with `LEGAL_TRANSITIONS` dict enforcing valid state edges. 6 REST endpoints live and smoke-tested. **31 total tests** at phase end. Frontend: TransactionsPage with filter bar + VerdictBadge + NewTransactionDialog + TransactionDetailDrawer (event timeline + FM/ADMIN approve/reject panel). Seed creates 8 demo transactions (5 CLEARED, 2 FLAGGED, 1 BLOCKED).
 - **Phase 4 complete + validation fixes applied (2026-05-28).** Both LLM pipelines live. S3 receipt upload flow end-to-end with MinIO for local dev. Policy engine ARQ job with real LLM (Llama 3.1 8B at temp 0) evaluating org's written policies. `receipt_id` and `matched_policy_id` FK mappings restored in ORM models. Alembic migration `0003_policy_soft_delete` adds `deleted_at` to policies. **40 total tests passing.** Frontend: PoliciesPage, ReceiptUploader, updated TransactionsPage + AppLayout nav.
 - **Phase 5 complete + validation fixes applied (2026-05-28).** Dashboard (Recharts charts, Redis-cached aggregations), Reimbursements (full SUBMITTED → POLICY_CHECKED → APPROVED/REJECTED → PAID state machine + ARQ policy check), Departments (CRUD + monthly budget status + Redis-deduped threshold alerts). All 9 critical/high validation issues (C1–C3, H1–H6) resolved before shipping. **46 total tests passing.** Frontend: rebuilt DashboardPage, new ReimbursementsPage + DepartmentsPage, AppLayout nav updated. 3 new routers live: `/api/v1/dashboard`, `/api/v1/reimbursements`, `/api/v1/departments`.
 - **Phase 6 complete + validation fixes applied (2026-05-28).** Digest engine (aggregate_spend_data + LLM + SMTP email + ARQ cron Mon 09:00 IST), notifications read layer (list/unread-count/mark-read/mark-all-read), UI polish (AppLayout rebuilt as left sidebar, DigestPage, Toast, EmptyState on all list pages, Inter font). All validation issues (C1, H2–H5, M7, L9, L10) resolved. **48 total tests passing.** 2 new routers: `/api/v1/digest`, `/api/v1/notifications`. `POST /digest/generate` returns HTTP 202 immediately; LLM runs in BackgroundTasks with own DB session.
+- **Phase 6.5 complete (2026-05-29).** Marketing landing page (GSAP + Lenis + Framer Motion, Ramp-parity design tokens), full app UI redesign (warm off-white palette, chartreuse CTAs, icon-only expandable sidebar), sidebar expand-on-click, year filter on TransactionsPage, hero screenshot removed, footer Company section removed. 12 validation fixes applied. Admin seed user changed to `naman.moudgill@e2enetworks.com`.
+- **Phase 7 complete + validation fixes applied (2026-05-29).** Rich seed: 40 transactions across 28 days (direct-insert deterministic state), 6 reimbursements, 5 active policies, 6 cards, 3 departments, 4 unread notifications. `POST /api/v1/demo/reset` wipes and reseeds in ~3 seconds. `policy_verdict` field on `TransactionOut`. `pending_approvals` KPI counts FLAGGED transactions + POLICY_CHECKED reimbursements. `scripts/smoke_test.sh` — 19/19 passing against `http://101.53.140.68`. `docs/DEMO_SCRIPT.md` written. Deployed to E2E Cloud VM.
 - **Phase 2 known gaps / deviations:**
   - `shadcn/ui` not installed. All Phase 1–5 UI is plain Tailwind. Deferred to Phase 6.
   - `GET /cards` returns `Card[]` (flat array), not `{items, next_cursor}`. Cursor pagination deferred. `docs/API.md` updated to match.
@@ -87,12 +89,14 @@ The seven Markdown files in this repo (`README.md` at repo root, plus `docs/ARCH
 - **Emails are stored as `CITEXT`, unique within `(org_id, email)`.**
 - **`audit_log` and `transaction_events` are append-only by convention** — no DELETE/UPDATE in code.
 
-**External services & credentials (in `.env`, gitignored):**
-- `TIR_BASE_URL=https://infer.e2enetworks.net/project/p-6530/endpoint/is-10649/v1/`
+**External services & credentials (in `.env` / `.env.prod`, both gitignored):**
+- `TIR_BASE_URL=https://infer.e2enetworks.net/project/p-6530/endpoint/is-10708/v1/` (updated 2026-05-29 — endpoint is-10649 decommissioned)
 - `TIR_API_KEY=<long JWT>` — text-only Llama 3.1 8B Instruct endpoint
 - `TIR_MODEL=meta-llama/Llama-3.1-8B-Instruct`
-- E2E S3-compatible object storage at `https://objectstore.e2enetworks.net` (access keys not yet filled — needed before Phase 4)
-- SMTP via Mailhog locally on port 1025 (UI on 8025)
+- MinIO used for object storage in both dev and prod (not E2E Object Storage). S3 API on port 9090, console on 9091.
+- SMTP disabled in prod (no Mailhog). Digest email is best-effort only.
+- **Production VM:** `ssh root@101.53.137.55` — public IP `101.53.140.68`. App at `/opt/vault/`. `.env.prod` synced manually via `scp`, never committed.
+- **Demo credentials:** `naman.moudgill@e2enetworks.com` / `vault-demo-pass`
 
 **How to verify the stack is alive before doing anything destructive:**
 ```bash
