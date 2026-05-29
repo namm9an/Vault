@@ -84,61 +84,6 @@ function HeroSection() {
           </Link>
         </motion.div>
 
-        {/* Product screenshot mockup */}
-        <motion.div
-          className="mt-16 w-full max-w-5xl"
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.7, duration: 0.7, ease: "easeOut" }}
-        >
-          <div className="rounded-2xl border border-[#d2cecb] shadow-2xl overflow-hidden bg-white">
-            {/* Browser chrome */}
-            <div className="bg-[#f4f2f0] border-b border-[#d2cecb] h-9 flex items-center px-4 gap-1.5">
-              <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
-              <div className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
-              <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
-              <div className="ml-4 flex-1 max-w-xs bg-[#d2cecb]/50 rounded h-4" />
-            </div>
-            {/* Dashboard mock content */}
-            <div className="bg-[#f4f2f0] h-72 flex">
-              {/* Sidebar strip */}
-              <div className="w-14 bg-[#1a1919] flex-shrink-0 flex flex-col items-center py-4 gap-3">
-                <div className="w-8 h-8 bg-solar rounded-lg" />
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="w-8 h-8 bg-white/10 rounded-lg" />
-                ))}
-              </div>
-              {/* Main mock */}
-              <div className="flex-1 p-6">
-                <div className="grid grid-cols-4 gap-3 mb-4">
-                  {["Total Spend", "Active Cards", "Pending", "Violations"].map((label, i) => (
-                    <div key={i} className="bg-white rounded-xl border border-[#d2cecb] p-4">
-                      <div className="text-[10px] text-[#6e6a68] uppercase tracking-wide mb-1">
-                        {label}
-                      </div>
-                      <div
-                        className="h-5 rounded"
-                        style={{
-                          background: i === 0 ? "#e4f222" : "#d2cecb",
-                          width: i === 0 ? "80%" : `${60 + i * 10}%`,
-                        }}
-                      />
-                    </div>
-                  ))}
-                </div>
-                <div className="bg-white rounded-xl border border-[#d2cecb] h-32 p-4 flex items-end gap-2">
-                  {[40, 65, 45, 80, 55, 90, 70, 85, 60, 75, 50, 95].map((h, i) => (
-                    <div
-                      key={i}
-                      className="flex-1 rounded-sm"
-                      style={{ height: `${h}%`, background: i === 11 ? "#e4f222" : "#d2cecb" }}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </motion.div>
       </div>
     </section>
   );
@@ -381,7 +326,7 @@ function Footer() {
   return (
     <footer className="bg-[#1a1919] text-white py-16 px-8">
       <div className="max-w-7xl mx-auto">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
           {/* Logo + tagline */}
           <div>
             <div className="flex items-center gap-2 mb-2">
@@ -402,22 +347,6 @@ function Footer() {
             </p>
             <ul className="space-y-2">
               {["Cards", "Transactions", "Policies", "Digest"].map((item) => (
-                <li key={item}>
-                  <a href="#" className="text-sm text-white/60 hover:text-white transition-colors">
-                    {item}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Company */}
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-white/40 mb-3">
-              Company
-            </p>
-            <ul className="space-y-2">
-              {["About", "Careers", "Blog", "Security"].map((item) => (
                 <li key={item}>
                   <a href="#" className="text-sm text-white/60 hover:text-white transition-colors">
                     {item}

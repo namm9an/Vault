@@ -431,6 +431,23 @@ export function TransactionsPage() {
   const [filters, setFilters] = useState<TransactionFilters>({});
   const [selectedTxnId, setSelectedTxnId] = useState<string | null>(null);
   const [showNewDialog, setShowNewDialog] = useState(false);
+  const [selectedYear, setSelectedYear] = useState<number | "">("");
+
+  const currentYear = new Date().getFullYear();
+  const YEARS = [currentYear, currentYear - 1, currentYear - 2];
+
+  function applyYear(year: number | "") {
+    setSelectedYear(year);
+    if (year === "") {
+      setFilters((prev) => { const f = { ...prev }; delete f.from_date; delete f.to_date; return f; });
+    } else {
+      setFilters((prev) => ({
+        ...prev,
+        from_date: new Date(`${year}-01-01T00:00:00`).toISOString(),
+        to_date: new Date(`${year}-12-31T23:59:59`).toISOString(),
+      }));
+    }
+  }
 
   const { data: txns, isLoading, error } = useTransactions(filters);
   const transactions = txns ?? [];
@@ -456,6 +473,17 @@ export function TransactionsPage() {
 
       {/* Filter bar */}
       <div className="bg-white border border-[#d2cecb] rounded-xl p-4 mb-4 flex flex-wrap gap-3">
+        <select
+          value={selectedYear}
+          onChange={(e) => applyYear(e.target.value === "" ? "" : Number(e.target.value))}
+          className="border border-[#d2cecb] rounded-[6px] px-3 py-1.5 text-sm"
+        >
+          <option value="">All years</option>
+          {YEARS.map((y) => (
+            <option key={y} value={y}>{y}</option>
+          ))}
+        </select>
+
         <select
           value={filters.state ?? ""}
           onChange={(e) => setFilter("state", e.target.value as TransactionState || undefined)}

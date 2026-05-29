@@ -206,9 +206,10 @@ interface NavItemProps {
   exact?: boolean;
   icon: ReactNode;
   label: string;
+  expanded?: boolean;
 }
 
-function NavItem({ to, exact, icon, label }: NavItemProps) {
+function NavItem({ to, exact, icon, label, expanded = false }: NavItemProps) {
   const [hovered, setHovered] = useState(false);
 
   return (
@@ -221,7 +222,9 @@ function NavItem({ to, exact, icon, label }: NavItemProps) {
         to={to}
         end={exact}
         className={({ isActive }) =>
-          `relative w-10 h-10 rounded-lg flex items-center justify-center mx-auto cursor-pointer transition-colors ${
+          `relative h-10 rounded-lg flex items-center cursor-pointer transition-colors ${
+            expanded ? "w-full px-3 gap-3" : "w-10 mx-auto justify-center"
+          } ${
             isActive
               ? "text-solar bg-white/10"
               : "text-white/40 hover:text-white hover:bg-white/10"
@@ -237,23 +240,30 @@ function NavItem({ to, exact, icon, label }: NavItemProps) {
                 transition={{ type: "spring", bounce: 0.2, duration: 0.4 }}
               />
             )}
-            <span className="relative z-10">{icon}</span>
+            <span className="relative z-10 flex-shrink-0">{icon}</span>
+            {expanded && (
+              <span className="relative z-10 text-sm font-medium whitespace-nowrap overflow-hidden">
+                {label}
+              </span>
+            )}
           </>
         )}
       </NavLink>
-      <AnimatePresence>
-        {hovered && (
-          <motion.div
-            className="absolute left-14 bg-[#1a1919] text-white text-xs px-2 py-1 rounded whitespace-nowrap z-50 border border-white/10 pointer-events-none"
-            initial={{ opacity: 0, x: -4 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -4 }}
-            transition={{ duration: 0.12 }}
-          >
-            {label}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {!expanded && (
+        <AnimatePresence>
+          {hovered && (
+            <motion.div
+              className="absolute left-14 bg-[#1a1919] text-white text-xs px-2 py-1 rounded whitespace-nowrap z-50 border border-white/10 pointer-events-none"
+              initial={{ opacity: 0, x: -4 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -4 }}
+              transition={{ duration: 0.12 }}
+            >
+              {label}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      )}
     </div>
   );
 }
@@ -289,6 +299,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
 
   const [signingOut, setSigningOut] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   async function onLogout() {
     setSigningOut(true);
@@ -315,50 +326,63 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#f4f2f0]">
-      {/* Sidebar — icon-only, 56px wide */}
-      <aside className="w-14 flex-shrink-0 h-screen bg-[#1a1919] flex flex-col items-center py-3">
-        {/* Logo mark */}
-        <div className="w-9 h-9 bg-solar rounded-lg flex items-center justify-center mb-6 flex-shrink-0">
-          <span className="text-[#0c0a08] font-bold text-sm">V</span>
-        </div>
+      {/* Sidebar — collapsible */}
+      <aside
+        className="flex-shrink-0 h-screen bg-[#1a1919] flex flex-col py-3 transition-all duration-200 overflow-hidden"
+        style={{ width: expanded ? 192 : 56 }}
+      >
+        {/* Logo — click to toggle expand */}
+        <button
+          onClick={() => setExpanded((v) => !v)}
+          className="flex items-center gap-2 mb-6 px-3 flex-shrink-0 focus:outline-none"
+        >
+          <div className="w-9 h-9 bg-solar rounded-lg flex items-center justify-center flex-shrink-0">
+            <span className="text-[#0c0a08] font-bold text-sm">V</span>
+          </div>
+          {expanded && (
+            <span className="text-white font-semibold text-base whitespace-nowrap">vault</span>
+          )}
+        </button>
 
         {/* Navigation */}
         <nav className="flex-1 flex flex-col w-full px-2 overflow-y-auto">
-          <NavItem to="/dashboard" exact icon={<IconDashboard />} label="Dashboard" />
-          <NavItem to="/cards" icon={<IconCards />} label="Cards" />
-          <NavItem to="/transactions" icon={<IconTransactions />} label="Transactions" />
-          <NavItem to="/reimbursements" icon={<IconReimbursements />} label="Reimbursements" />
+          <NavItem to="/dashboard" exact icon={<IconDashboard />} label="Dashboard" expanded={expanded} />
+          <NavItem to="/cards" icon={<IconCards />} label="Cards" expanded={expanded} />
+          <NavItem to="/transactions" icon={<IconTransactions />} label="Transactions" expanded={expanded} />
+          <NavItem to="/reimbursements" icon={<IconReimbursements />} label="Reimbursements" expanded={expanded} />
           {!isEmployee && (
             <>
-              <NavItem to="/departments" icon={<IconDepartments />} label="Departments" />
-              <NavItem to="/digest" icon={<IconDigest />} label="Digest" />
-              <NavItem to="/policies" icon={<IconPolicies />} label="Policies" />
+              <NavItem to="/departments" icon={<IconDepartments />} label="Departments" expanded={expanded} />
+              <NavItem to="/digest" icon={<IconDigest />} label="Digest" expanded={expanded} />
+              <NavItem to="/policies" icon={<IconPolicies />} label="Policies" expanded={expanded} />
             </>
           )}
 
           {/* Divider */}
           <div className="my-2 border-t border-white/10 mx-2" />
 
-          <NavItem to="/settings" icon={<IconSettings />} label="Settings" />
+          <NavItem to="/settings" icon={<IconSettings />} label="Settings" expanded={expanded} />
         </nav>
 
         {/* Bottom: user initials + sign out */}
         <div className="flex flex-col items-center gap-2 pb-1 w-full px-2">
-          {/* User initials avatar */}
           <div
-            className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center cursor-default"
+            className={`h-10 rounded-lg bg-white/10 flex items-center cursor-default gap-2 ${expanded ? "w-full px-3" : "w-10 justify-center"}`}
             title={user?.full_name ?? ""}
           >
-            <span className="text-white text-xs font-semibold">{initials}</span>
+            <span className="text-white text-xs font-semibold flex-shrink-0">{initials}</span>
+            {expanded && (
+              <span className="text-white/60 text-xs truncate">{user?.full_name ?? ""}</span>
+            )}
           </div>
-          {/* Sign out */}
           <button
             onClick={onLogout}
             disabled={signingOut}
-            className="w-10 h-10 rounded-lg flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+            className={`h-10 rounded-lg flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-colors gap-2 ${expanded ? "w-full px-3" : "w-10"}`}
             title="Sign out"
           >
             <IconSignOut />
+            {expanded && <span className="text-sm">Sign out</span>}
           </button>
         </div>
       </aside>
