@@ -117,6 +117,7 @@ function NotificationBell() {
   const notifs = useNotifications();
   const markRead = useMarkRead();
   const markAllRead = useMarkAllRead();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -170,7 +171,13 @@ function NotificationBell() {
               notifs.data.map((n) => (
                 <button
                   key={n.id}
-                  onClick={() => markRead.mutate(n.id)}
+                  onClick={() => {
+                    markRead.mutate(n.id);
+                    if (n.link) {
+                      setOpen(false);
+                      navigate(n.link);
+                    }
+                  }}
                   className="w-full text-left px-4 py-3 hover:bg-[#f4f2f0] transition-colors flex gap-3 items-start"
                 >
                   {!n.read_at && (
