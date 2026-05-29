@@ -35,8 +35,9 @@ Thumbs.db
 pgdata/
 redisdata/
 
-# Docs and markdown (not pushed to GitHub)
-docs/
+# Generated graph output
 graphify-out/
-*.md
-!README.md
+
+# Ignore standalone .md files at repo root except README
+/*.md
+!/README.md

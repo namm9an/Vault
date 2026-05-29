@@ -151,7 +151,10 @@ async def _seed_transaction_direct(
         verdict = PolicyVerdict.FLAGGED
         reason = _POLICY_REASONS[policy_key]
         policy_matched = POLICY_TEXTS[policy_key]
-        requires_approval_from = UserRole.FINANCE_MANAGER
+        # Policies 3 (CFO sign-off) and 4 (executive approval) → ADMIN
+        requires_approval_from = (
+            UserRole.ADMIN if policy_key in (3, 4) else UserRole.FINANCE_MANAGER
+        )
     else:  # BLOCKED
         verdict = PolicyVerdict.BLOCKED
         if isinstance(policy_key, int):
@@ -436,7 +439,7 @@ async def reseed_transactional(
     for n in notifs:
         db.add(n)
 
-    await db.commit()
+    await db.flush()
 
     return {
         "transactions": txn_count,
@@ -542,6 +545,7 @@ async def run() -> None:
         stats = await reseed_transactional(
             db, org, naman, felix, bob, carol, eng_dept, mkt_dept, ops_dept, cards,
         )
+        await db.commit()
 
         print("Seed complete.")
         print(f"  Org:             {org.name} (slug={org.slug})")

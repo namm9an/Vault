@@ -17,6 +17,8 @@ without SSH-ing into the VM.
 """
 from __future__ import annotations
 
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import delete as sa_delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -24,6 +26,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import redis.asyncio as aioredis
 
 from api.config import get_settings
+
+logger = logging.getLogger(__name__)
 from api.db.base import get_db
 from api.db.seeds import DEMO_ORG_SLUG, reseed_transactional
 from api.deps import OrgScope, get_org_scope, require_role
@@ -133,6 +137,7 @@ async def reset_demo(
     stats = await reseed_transactional(
         db, org, naman, felix, bob, carol, eng_dept, mkt_dept, ops_dept, cards,
     )
+    await db.commit()
 
     # ── 4. Bust Redis dashboard cache for this org ───────────────────────────
     try:
@@ -140,9 +145,10 @@ async def reset_demo(
         keys = await client.keys(f"dash:{org_id}:*")
         if keys:
             await client.delete(*keys)
+            logger.info("Busted %d dashboard cache keys for org %s", len(keys), org_id)
         await client.aclose()
-    except Exception:  # noqa: BLE001
-        pass  # Cache bust failure is non-fatal — stale data clears in 5 min
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Redis cache bust failed for org %s: %s", org_id, exc)
 
     return {
         "status": "reset",

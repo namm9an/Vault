@@ -61,8 +61,6 @@ if [[ -z $TOKEN ]]; then
   exit 1
 fi
 
-AUTH="-H \"Authorization: Bearer $TOKEN\""
-
 _get() {
   curl -sf -H "Authorization: Bearer $TOKEN" "$BASE/api/v1/$1" 2>/dev/null
 }
@@ -89,7 +87,8 @@ TXN_COUNT=$(echo "$TXN_RESP" | python3 -c "
 import sys, json
 try:
     print(len(json.load(sys.stdin)))
-except Exception:
+except Exception as e:
+    print(f'PARSE_FAIL: {e}', file=sys.stderr)
     print(0)
 " 2>/dev/null)
 
@@ -101,10 +100,10 @@ HAS_VERDICT=$(echo "$TXN_RESP" | python3 -c "
 import sys, json
 try:
     data = json.load(sys.stdin)
-    # Check if any item has policy_verdict key (even if null)
     has = any('policy_verdict' in t for t in data[:5])
     print('true' if has else 'false')
-except Exception:
+except Exception as e:
+    print(f'PARSE_FAIL: {e}', file=sys.stderr)
     print('false')
 " 2>/dev/null)
 check "GET /transactions → includes policy_verdict field" "true" "$HAS_VERDICT"
@@ -126,7 +125,8 @@ import sys, json
 try:
     d = json.load(sys.stdin)
     print('nonzero' if float(d.get('total_spend', 0)) > 0 else 'zero')
-except Exception:
+except Exception as e:
+    print(f'PARSE_FAIL: {e}', file=sys.stderr)
     print('zero')
 " 2>/dev/null)
 check "Dashboard total_spend > 0"   "nonzero" "$TOTAL_SPEND"
@@ -136,7 +136,8 @@ import sys, json
 try:
     d = json.load(sys.stdin)
     print(d.get('pending_approvals', 0))
-except Exception:
+except Exception as e:
+    print(f'PARSE_FAIL: {e}', file=sys.stderr)
     print(0)
 " 2>/dev/null)
 check_gte "Dashboard pending_approvals ≥ 5" 5 "$PENDING"
@@ -148,37 +149,40 @@ check "GET /dashboard/timeseries → 200" "200" "$TS_STATUS"
 
 # ── Cards count ──────────────────────────────────────────────────────────────
 
-CARD_COUNT=$(curl -s -H "Authorization: Bearer $TOKEN" \
+CARD_COUNT=$(curl -sf -H "Authorization: Bearer $TOKEN" \
   "$BASE/api/v1/cards" 2>/dev/null | python3 -c "
 import sys, json
 try:
     print(len(json.load(sys.stdin)))
-except Exception:
+except Exception as e:
+    print(f'PARSE_FAIL: {e}', file=sys.stderr)
     print(0)
 ")
 check_gte "GET /cards → ≥ 6 cards" 6 "$CARD_COUNT"
 
 # ── Policies count ───────────────────────────────────────────────────────────
 
-POLICY_COUNT=$(curl -s -H "Authorization: Bearer $TOKEN" \
+POLICY_COUNT=$(curl -sf -H "Authorization: Bearer $TOKEN" \
   "$BASE/api/v1/policies" 2>/dev/null | python3 -c "
 import sys, json
 try:
     print(len(json.load(sys.stdin)))
-except Exception:
+except Exception as e:
+    print(f'PARSE_FAIL: {e}', file=sys.stderr)
     print(0)
 ")
 check_gte "GET /policies → ≥ 5 active policies" 5 "$POLICY_COUNT"
 
 # ── Notifications for Naman ──────────────────────────────────────────────────
 
-UNREAD=$(curl -s -H "Authorization: Bearer $TOKEN" \
+UNREAD=$(curl -sf -H "Authorization: Bearer $TOKEN" \
   "$BASE/api/v1/notifications/unread-count" 2>/dev/null | python3 -c "
 import sys, json
 try:
     d = json.load(sys.stdin)
     print(d.get('unread_count', 0))
-except Exception:
+except Exception as e:
+    print(f'PARSE_FAIL: {e}', file=sys.stderr)
     print(0)
 ")
 check_gte "Naman unread notifications ≥ 3" 3 "$UNREAD"
