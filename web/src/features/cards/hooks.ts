@@ -73,3 +73,13 @@ function useCardAction(action: "freeze" | "unfreeze" | "cancel") {
 export function useFreezeCard() { return useCardAction("freeze"); }
 export function useUnfreezeCard() { return useCardAction("unfreeze"); }
 export function useCancelCard() { return useCardAction("cancel"); }
+
+export function useDeleteCard() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string): Promise<void> => {
+      await api.delete(`/cards/${id}`);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: CARDS_KEY }),
+  });
+}

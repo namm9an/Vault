@@ -7,6 +7,7 @@ import {
   useFreezeCard,
   useUnfreezeCard,
   useCancelCard,
+  useDeleteCard,
 } from "@/features/cards/hooks";
 import { useUsers } from "@/features/users/hooks";
 import { EmptyState } from "@/components/EmptyState";
@@ -199,6 +200,7 @@ export function CardsPage() {
   const freeze = useFreezeCard();
   const unfreeze = useUnfreezeCard();
   const cancel = useCancelCard();
+  const deleteCard = useDeleteCard();
 
   const [showNew, setShowNew] = useState(false);
   const [confirm, setConfirm] = useState<{
@@ -307,6 +309,15 @@ export function CardsPage() {
                             className="text-xs text-red-600 hover:underline"
                           >
                             Cancel
+                          </button>
+                        )}
+                        {card.status === "CANCELLED" && (
+                          <button
+                            onClick={() => deleteCard.mutate(card.id)}
+                            disabled={deleteCard.isPending}
+                            className="text-xs text-[#6e6a68] hover:text-red-600 hover:underline disabled:opacity-40"
+                          >
+                            Delete
                           </button>
                         )}
                       </div>

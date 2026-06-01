@@ -183,6 +183,14 @@ async def unfreeze_card(scope: OrgScope, card_id: UUID) -> Card:
     return card
 
 
+async def delete_card(scope: OrgScope, card_id: UUID) -> None:
+    card = await _load_card(scope, card_id)
+    if card.status != CardStatus.CANCELLED:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "only cancelled cards can be deleted")
+    await scope.db.delete(card)
+    await scope.db.commit()
+
+
 async def cancel_card(scope: OrgScope, card_id: UUID) -> Card:
     card = await _load_card(scope, card_id)
     if card.status == CardStatus.CANCELLED:

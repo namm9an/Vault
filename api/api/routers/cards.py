@@ -61,3 +61,8 @@ async def unfreeze_card(card_id: UUID, scope: OrgScope = Depends(get_org_scope))
 async def cancel_card(card_id: UUID, scope: OrgScope = Depends(get_org_scope)) -> CardResponse:
     card = await card_service.cancel_card(scope, card_id)
     return CardResponse(card=CardOut.model_validate(card))
+
+
+@router.delete("/{card_id}", status_code=204, dependencies=[Depends(_admin)])
+async def delete_card(card_id: UUID, scope: OrgScope = Depends(get_org_scope)) -> None:
+    await card_service.delete_card(scope, card_id)
