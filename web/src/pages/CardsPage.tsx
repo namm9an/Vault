@@ -8,6 +8,7 @@ import {
   useUnfreezeCard,
   useCancelCard,
   useDeleteCard,
+  useUpdateCard,
 } from "@/features/cards/hooks";
 import { useUsers } from "@/features/users/hooks";
 import { EmptyState } from "@/components/EmptyState";
@@ -192,6 +193,70 @@ function ConfirmDialog({ title, body, confirmLabel, danger, onConfirm, onClose, 
   );
 }
 
+// ── Edit Categories Dialog ────────────────────────────────────────────────────
+
+function EditCategoriesDialog({ card, onClose }: { card: Card; onClose: () => void }) {
+  const update = useUpdateCard();
+  const [categories, setCategories] = useState<SpendCategory[]>(card.category_restrictions);
+
+  const toggleCat = (c: SpendCategory) =>
+    setCategories((prev) => prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]);
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    try {
+      await update.mutateAsync({ id: card.id, category_restrictions: categories });
+      onClose();
+    } catch { /* error shown below */ }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-4">
+        <h2 className="text-base font-semibold text-[#0c0a08]">
+          Edit allowed categories — <span className="font-normal text-[#6e6a68]">{card.nickname}</span>
+        </h2>
+        <form onSubmit={onSubmit} className="space-y-4">
+          <div>
+            <span className="text-sm text-[#6e6a68]">Allowed categories (leave empty = all allowed)</span>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {ALL_CATEGORIES.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => toggleCat(c)}
+                  className={`px-2 py-0.5 rounded text-xs border transition-colors ${
+                    categories.includes(c)
+                      ? "bg-solar text-[#0c0a08] border-solar"
+                      : "bg-white text-[#6e6a68] border-[#d2cecb] hover:border-solar"
+                  }`}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+          </div>
+          {update.isError && (
+            <p className="text-sm text-red-600">
+              {(update.error as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? "Failed to update card"}
+            </p>
+          )}
+          <div className="flex gap-3 pt-1">
+            <button type="button" onClick={onClose}
+              className="flex-1 py-2 rounded-[6px] border border-[#d2cecb] text-sm text-[#0c0a08] hover:bg-[#f4f2f0]">
+              Cancel
+            </button>
+            <button type="submit" disabled={update.isPending}
+              className="flex-1 py-2 rounded-[6px] bg-solar text-[#0c0a08] text-sm font-semibold hover:bg-solar-light disabled:opacity-50">
+              {update.isPending ? "Saving…" : "Save"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export function CardsPage() {
@@ -203,6 +268,7 @@ export function CardsPage() {
   const deleteCard = useDeleteCard();
 
   const [showNew, setShowNew] = useState(false);
+  const [editingCard, setEditingCard] = useState<Card | null>(null);
   const [confirm, setConfirm] = useState<{
     card: Card;
     action: "freeze" | "unfreeze" | "cancel";
@@ -287,6 +353,14 @@ export function CardsPage() {
                   {isAdmin && (
                     <td className="px-4 py-3 text-right">
                       <div className="flex justify-end gap-2">
+                        {card.status !== "CANCELLED" && (
+                          <button
+                            onClick={() => setEditingCard(card)}
+                            className="text-xs text-blue-700 hover:underline"
+                          >
+                            Edit
+                          </button>
+                        )}
                         {card.status === "ACTIVE" && (
                           <button
                             onClick={() => setConfirm({ card, action: "freeze" })}
@@ -331,6 +405,7 @@ export function CardsPage() {
       )}
 
       {showNew && <NewCardDialog onClose={() => setShowNew(false)} />}
+      {editingCard && <EditCategoriesDialog card={editingCard} onClose={() => setEditingCard(null)} />}
 
       {confirm && (
         <ConfirmDialog
