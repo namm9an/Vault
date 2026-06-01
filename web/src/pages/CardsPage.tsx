@@ -106,7 +106,7 @@ function NewCardDialog({ onClose }: NewCardDialogProps) {
             </label>
           </div>
           <div>
-            <span className="text-sm text-[#6e6a68]">Category restrictions (leave empty = all allowed)</span>
+            <span className="text-sm text-[#6e6a68]">Allowed categories (leave empty = all allowed)</span>
             <div className="mt-1 flex flex-wrap gap-2">
               {ALL_CATEGORIES.map((c) => (
                 <button
@@ -251,7 +251,7 @@ export function CardsPage() {
                 <th className="px-4 py-3 text-left">Status</th>
                 <th className="px-4 py-3 text-right">Daily limit</th>
                 <th className="px-4 py-3 text-right">Monthly limit</th>
-                <th className="px-4 py-3 text-left">Restrictions</th>
+                <th className="px-4 py-3 text-left">Allowed Categories</th>
                 {isAdmin && <th className="px-4 py-3 text-right">Actions</th>}
               </tr>
             </thead>
@@ -277,7 +277,7 @@ export function CardsPage() {
                   <td className="px-4 py-3 text-right font-mono text-[#0c0a08]">{fmt(card.monthly_limit)}</td>
                   <td className="px-4 py-3">
                     {card.category_restrictions.length === 0 ? (
-                      <span className="text-[#6e6a68] text-xs">All</span>
+                      <span className="text-[#6e6a68] text-xs">All categories</span>
                     ) : (
                       <span className="text-xs text-[#6e6a68]">{card.category_restrictions.join(", ")}</span>
                     )}
