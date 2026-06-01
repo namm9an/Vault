@@ -140,7 +140,7 @@ export type TransactionWithEvents = Transaction & {
 export type Policy = {
   id: string;
   org_id: string;
-  text: string;
+  policy_text: string;
   is_active: boolean;
   created_by: string;
   created_at: string;
