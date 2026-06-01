@@ -481,3 +481,10 @@ async def get_digest(scope: OrgScope, digest_id: UUID) -> Digest:
     if digest is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="digest not found")
     return digest
+
+
+async def delete_digest(scope: OrgScope, digest_id: UUID) -> None:
+    """Delete a digest by ID. 404 if not found or belongs to another org."""
+    digest = await get_digest(scope, digest_id)
+    await scope.db.delete(digest)
+    await scope.db.commit()

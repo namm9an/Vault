@@ -23,6 +23,16 @@ export function useDigest(id: string | undefined) {
   });
 }
 
+export function useDeleteDigest() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await api.delete(`/digest/${id}`);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["digests"] }),
+  });
+}
+
 export function useGenerateDigest() {
   const qc = useQueryClient();
   return useMutation({

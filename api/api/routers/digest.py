@@ -19,6 +19,7 @@ from api.models.digest import DigestStatus
 from api.models.user import UserRole
 from api.schemas.digest import DigestGenerateRequest, DigestOut
 from api.services.digest_service import (
+    delete_digest,
     get_digest,
     get_or_create_pending_digest,
     list_digests,
@@ -63,6 +64,15 @@ async def get_digest_route(
     _=Depends(require_role(UserRole.FINANCE_MANAGER, UserRole.ADMIN)),
 ):
     return await get_digest(scope, digest_id)
+
+
+@router.delete("/{digest_id}", status_code=204)
+async def delete_digest_route(
+    digest_id: UUID,
+    scope: OrgScope = Depends(get_org_scope),
+    _=Depends(require_role(UserRole.ADMIN)),
+):
+    await delete_digest(scope, digest_id)
 
 
 @router.post("/generate", response_model=DigestOut, status_code=202)

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMe } from "@/features/auth/hooks";
-import { useDigests, useGenerateDigest } from "@/features/digest/hooks";
+import { useDeleteDigest, useDigests, useGenerateDigest } from "@/features/digest/hooks";
 import { EmptyState } from "@/components/EmptyState";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import type { Digest, DigestStatus } from "@/types/api";
@@ -109,15 +109,31 @@ function GenerateModal({
 // Digest Detail Panel
 // ---------------------------------------------------------------------------
 
-function DigestDetail({ digest }: { digest: Digest }) {
+function DigestDetail({ digest, isAdmin, onDelete, deleting }: {
+  digest: Digest;
+  isAdmin: boolean;
+  onDelete: () => void;
+  deleting: boolean;
+}) {
   return (
     <div className="p-6 space-y-6">
       <div>
-        <div className="flex items-center gap-2 mb-1">
-          {statusBadge(digest.status)}
-          <span className="text-xs text-[#6e6a68]">
-            {fmtDate(digest.period_start)} – {fmtDate(digest.period_end)}
-          </span>
+        <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center gap-2">
+            {statusBadge(digest.status)}
+            <span className="text-xs text-[#6e6a68]">
+              {fmtDate(digest.period_start)} – {fmtDate(digest.period_end)}
+            </span>
+          </div>
+          {isAdmin && (
+            <button
+              onClick={onDelete}
+              disabled={deleting}
+              className="px-3 py-1.5 text-xs font-medium rounded-[6px] border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-50"
+            >
+              {deleting ? "Deleting…" : "Delete"}
+            </button>
+          )}
         </div>
         {digest.headline ? (
           <h2 className="text-lg font-semibold text-[#0c0a08] mt-2">
@@ -196,6 +212,7 @@ export function DigestPage() {
   const me = useMe();
   const digests = useDigests();
   const generateDigest = useGenerateDigest();
+  const deleteDigest = useDeleteDigest();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
 
@@ -207,6 +224,12 @@ export function DigestPage() {
   const selected = selectedId
     ? ((digests.data ?? []).find((d) => d.id === selectedId) ?? generateDigest.data ?? null)
     : null;
+
+  async function handleDelete() {
+    if (!selectedId) return;
+    await deleteDigest.mutateAsync(selectedId);
+    setSelectedId(null);
+  }
 
   async function handleGenerate(start: string, end: string) {
     try {
@@ -297,7 +320,12 @@ export function DigestPage() {
       {/* Right: detail panel */}
       <div className="flex-1 overflow-y-auto bg-[#f4f2f0]">
         {selected ? (
-          <DigestDetail digest={selected} />
+          <DigestDetail
+            digest={selected}
+            isAdmin={isAdmin}
+            onDelete={handleDelete}
+            deleting={deleteDigest.isPending}
+          />
         ) : (
           <div className="h-full flex items-center justify-center">
             <EmptyState
