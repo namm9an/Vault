@@ -24,10 +24,9 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://redis:6379/0"
     ARQ_REDIS_URL: str = "redis://redis:6379/1"
 
-    TIR_BASE_URL: str = ""
-    TIR_API_KEY: str = ""
-    TIR_MODEL: str = "meta-llama/Llama-3.1-8B-Instruct"
-    TIR_TIMEOUT_SECONDS: int = 60
+    GEMINI_API_KEY: str = ""
+    GEMINI_MODEL: str = "gemini-2.0-flash"
+    GEMINI_TIMEOUT_SECONDS: int = 60
 
     S3_ENDPOINT_URL: str = ""
     # Public-facing URL for presigned URLs returned to the browser.
