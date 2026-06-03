@@ -35,12 +35,12 @@ router = APIRouter(prefix="/digest", tags=["digest"])
 # Background task helper — opens own session, independent of request scope
 # ---------------------------------------------------------------------------
 
-async def _bg_generate(org_id, user_id, period_start, period_end) -> None:
+async def _bg_generate(org_id, user_id, digest_id, period_start, period_end) -> None:
     async with get_session_factory()() as db:
         from api.deps import OrgScope as _OrgScope
         bg_scope = _OrgScope(db=db, org_id=org_id, user_id=user_id, role=UserRole.ADMIN)
         try:
-            await run_digest_generation(bg_scope, period_start, period_end)
+            await run_digest_generation(bg_scope, period_start, period_end, digest_id=digest_id)
         except Exception as exc:  # noqa: BLE001
             logger.error("background digest generation failed for org %s: %s", org_id, exc)
 
@@ -101,6 +101,7 @@ async def generate_digest_route(
         _bg_generate,
         scope.org_id,
         scope.user_id,
+        digest.id,
         body.period_start,
         body.period_end,
     )

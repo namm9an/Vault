@@ -371,18 +371,24 @@ async def run_digest_generation(
     scope: OrgScope,
     period_start: Any,
     period_end: Any,
+    digest_id: Any = None,
 ) -> Digest:
     """Generate a weekly digest for the org.
 
-    Idempotency:
-    - COMPLETED digest for same (org_id, period_start, period_end) → return immediately
-    - PENDING digest created within last 10 min → raise HTTP 409
+    If digest_id is provided (background task path), load the already-created
+    PENDING digest directly — skips get_or_create_pending_digest to avoid 409.
     """
     db = scope.db
     org_id = scope.org_id
 
-    # Idempotency check + PENDING row creation (shared with router fast-path)
-    digest = await get_or_create_pending_digest(scope, period_start, period_end)
+    if digest_id is not None:
+        digest = (await db.execute(
+            select(Digest).where(Digest.id == digest_id)
+        )).scalar_one_or_none()
+        if digest is None or digest.status == DigestStatus.COMPLETED:
+            return digest
+    else:
+        digest = await get_or_create_pending_digest(scope, period_start, period_end)
     if digest.status == DigestStatus.COMPLETED:
         logger.info("digest already completed for org %s, period %s–%s", org_id, period_start, period_end)
         return digest
