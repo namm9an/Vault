@@ -9,6 +9,8 @@ export function useDigests() {
       const { data } = await api.get("/digest");
       return data;
     },
+    refetchInterval: (query) =>
+      query.state.data?.some((d) => d.status === "PENDING") ? 3000 : false,
   });
 }
 
