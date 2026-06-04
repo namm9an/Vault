@@ -227,7 +227,7 @@ async def call_llm_for_digest(aggregated: dict, settings) -> dict:
         user=user_prompt,
         schema=SpendDigest,
         temperature=0.3,
-        max_tokens=900,
+        max_tokens=2048,
     )
     return result.model_dump()
 
