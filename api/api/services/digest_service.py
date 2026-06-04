@@ -40,7 +40,9 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 _DIGEST_SYSTEM_PROMPT = """\
-You are a corporate spend analyst. Given aggregated expense data, produce a concise weekly digest in JSON with exactly these keys:
+You are a corporate spend analyst for an Indian company. All amounts are in Indian Rupees (INR). \
+When writing the narrative, always use the ₹ symbol and Indian number formatting (e.g. ₹38,000 or ₹1.2 lakh). \
+Never use $ or USD. Given aggregated expense data, produce a concise weekly digest in JSON with exactly these keys:
 - "headline": one sentence summary (max 15 words)
 - "body": 2-3 paragraph narrative covering spend trends, anomalies, and highlights
 - "top_recommendations": array of 3 actionable strings for the finance team
