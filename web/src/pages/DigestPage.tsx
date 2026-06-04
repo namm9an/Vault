@@ -1,9 +1,18 @@
 import { useState } from "react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+} from "recharts";
 import { useMe } from "@/features/auth/hooks";
 import { useDeleteDigest, useDigests, useGenerateDigest } from "@/features/digest/hooks";
 import { EmptyState } from "@/components/EmptyState";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
-import type { Digest, DigestStatus } from "@/types/api";
+import type { Digest, DigestAggregated, DigestStatus } from "@/types/api";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -29,9 +38,15 @@ function fmtDate(d: string) {
   });
 }
 
+function fmtINR(n: number) {
+  return "₹" + n.toLocaleString("en-IN", { maximumFractionDigits: 0 });
+}
+
 function toInputDate(d: Date) {
   return d.toISOString().split("T")[0];
 }
+
+const CHART_COLORS = ["#f5a623", "#e8855a", "#6c8ebf", "#82ca9d", "#b784a7"];
 
 // ---------------------------------------------------------------------------
 // Generate Modal
@@ -106,6 +121,127 @@ function GenerateModal({
 }
 
 // ---------------------------------------------------------------------------
+// KPI Card
+// ---------------------------------------------------------------------------
+
+function KpiCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
+  return (
+    <div className="bg-white rounded-xl border border-[#d2cecb] px-5 py-4 flex flex-col gap-1">
+      <span className="text-xs uppercase tracking-wide text-[#6e6a68] font-medium">{label}</span>
+      <span className="text-2xl font-bold text-[#0c0a08]">{value}</span>
+      {sub && <span className="text-xs text-[#6e6a68]">{sub}</span>}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Spend Charts
+// ---------------------------------------------------------------------------
+
+function SpendCharts({ agg }: { agg: DigestAggregated }) {
+  const catData = (agg.top_categories ?? []).map((c) => ({
+    name: c.category.replace(/_/g, " "),
+    amount: c.amount,
+  }));
+
+  const deptData = (agg.top_departments ?? []).map((d) => ({
+    name: d.department_name,
+    amount: d.amount,
+  }));
+
+  const merchantData = (agg.top_merchants ?? []).map((m) => ({
+    name: m.merchant,
+    amount: m.amount,
+    count: m.count,
+  }));
+
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload?.length) return null;
+    return (
+      <div className="bg-white border border-[#d2cecb] rounded-lg px-3 py-2 shadow text-xs">
+        <p className="font-medium text-[#0c0a08] mb-1">{label}</p>
+        <p className="text-[#6e6a68]">{fmtINR(payload[0].value)}</p>
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-4">
+      {catData.length > 0 && (
+        <div className="bg-white rounded-xl border border-[#d2cecb] p-5">
+          <h3 className="text-xs uppercase tracking-wide text-[#6e6a68] font-medium mb-4">
+            Spend by Category
+          </h3>
+          <ResponsiveContainer width="100%" height={Math.max(140, catData.length * 38)}>
+            <BarChart data={catData} layout="vertical" margin={{ left: 8, right: 24, top: 4, bottom: 4 }}>
+              <XAxis type="number" tick={{ fontSize: 11, fill: "#6e6a68" }} tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`} axisLine={false} tickLine={false} />
+              <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: "#0c0a08" }} width={100} axisLine={false} tickLine={false} />
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: "#f4f2f0" }} />
+              <Bar dataKey="amount" radius={[0, 4, 4, 0]} maxBarSize={22}>
+                {catData.map((_, i) => (
+                  <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {deptData.length > 0 && (
+        <div className="bg-white rounded-xl border border-[#d2cecb] p-5">
+          <h3 className="text-xs uppercase tracking-wide text-[#6e6a68] font-medium mb-4">
+            Spend by Department
+          </h3>
+          <ResponsiveContainer width="100%" height={Math.max(140, deptData.length * 38)}>
+            <BarChart data={deptData} layout="vertical" margin={{ left: 8, right: 24, top: 4, bottom: 4 }}>
+              <XAxis type="number" tick={{ fontSize: 11, fill: "#6e6a68" }} tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`} axisLine={false} tickLine={false} />
+              <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: "#0c0a08" }} width={100} axisLine={false} tickLine={false} />
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: "#f4f2f0" }} />
+              <Bar dataKey="amount" radius={[0, 4, 4, 0]} maxBarSize={22}>
+                {deptData.map((_, i) => (
+                  <Cell key={i} fill={CHART_COLORS[(i + 2) % CHART_COLORS.length]} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {merchantData.length > 0 && (
+        <div className="bg-white rounded-xl border border-[#d2cecb] p-5">
+          <h3 className="text-xs uppercase tracking-wide text-[#6e6a68] font-medium mb-4">
+            Top Merchants
+          </h3>
+          <div className="space-y-3">
+            {merchantData.map((m, i) => {
+              const max = merchantData[0]?.amount ?? 1;
+              const pct = Math.round((m.amount / max) * 100);
+              return (
+                <div key={i} className="flex items-center gap-3">
+                  <span className="text-xs text-[#0c0a08] w-28 truncate flex-shrink-0">{m.name}</span>
+                  <div className="flex-1 bg-[#f4f2f0] rounded-full h-2">
+                    <div
+                      className="h-2 rounded-full transition-all"
+                      style={{ width: `${pct}%`, backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }}
+                    />
+                  </div>
+                  <span className="text-xs font-medium text-[#0c0a08] w-20 text-right flex-shrink-0">
+                    {fmtINR(m.amount)}
+                  </span>
+                  <span className="text-xs text-[#6e6a68] w-8 text-right flex-shrink-0">
+                    {m.count}×
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Digest Detail Panel
 // ---------------------------------------------------------------------------
 
@@ -115,43 +251,60 @@ function DigestDetail({ digest, isAdmin, onDelete, deleting }: {
   onDelete: () => void;
   deleting: boolean;
 }) {
+  const agg = digest.aggregated_input;
+
   return (
-    <div className="p-6 space-y-6">
-      <div>
-        <div className="flex items-center justify-between mb-1">
-          <div className="flex items-center gap-2">
+    <div className="p-6 space-y-5 max-w-3xl mx-auto">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 mb-2">
             {statusBadge(digest.status)}
             <span className="text-xs text-[#6e6a68]">
               {fmtDate(digest.period_start)} – {fmtDate(digest.period_end)}
             </span>
           </div>
-          {isAdmin && (
-            <button
-              onClick={onDelete}
-              disabled={deleting}
-              className="px-3 py-1.5 text-xs font-medium rounded-[6px] border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-50"
-            >
-              {deleting ? "Deleting…" : "Delete"}
-            </button>
+          {digest.headline ? (
+            <h2 className="text-xl font-bold text-[#0c0a08]">{digest.headline}</h2>
+          ) : digest.status === "FAILED" ? (
+            <p className="text-sm text-red-600">Digest generation failed. Try regenerating.</p>
+          ) : (
+            <p className="text-sm text-[#6e6a68] italic">Generating…</p>
           )}
         </div>
-        {digest.headline ? (
-          <h2 className="text-lg font-semibold text-[#0c0a08] mt-2">
-            {digest.headline}
-          </h2>
-        ) : digest.status === "FAILED" ? (
-          <p className="text-sm text-red-600 mt-2">
-            Digest generation failed. Try regenerating.
-          </p>
-        ) : (
-          <p className="text-sm text-[#6e6a68] mt-2">No headline available.</p>
+        {isAdmin && (
+          <button
+            onClick={onDelete}
+            disabled={deleting}
+            className="flex-shrink-0 px-3 py-1.5 text-xs font-medium rounded-[6px] border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-50"
+          >
+            {deleting ? "Deleting…" : "Delete"}
+          </button>
         )}
       </div>
 
+      {/* KPI Cards */}
+      {agg && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <KpiCard label="Total Spend" value={fmtINR(agg.total_spend)} />
+          <KpiCard label="Transactions" value={String(agg.transaction_count)} />
+          <KpiCard label="Pending Approvals" value={String(agg.pending_approvals)} />
+          <KpiCard
+            label="Flagged Items"
+            value={String(digest.flagged_items?.length ?? 0)}
+            sub={agg.policy_blocked_count > 0 ? `${agg.policy_blocked_count} policy blocked` : undefined}
+          />
+        </div>
+      )}
+
+      {/* Charts */}
+      {agg && <SpendCharts agg={agg} />}
+
+      {/* AI Summary */}
       {digest.body && (
-        <div>
-          <h3 className="text-xs uppercase tracking-wide text-[#6e6a68] font-medium mb-2">
-            Summary
+        <div className="bg-white rounded-xl border border-[#d2cecb] p-5">
+          <h3 className="text-xs uppercase tracking-wide text-[#6e6a68] font-medium mb-3">
+            AI Summary
           </h3>
           <p className="text-sm text-[#0c0a08] leading-relaxed whitespace-pre-line">
             {digest.body}
@@ -159,15 +312,18 @@ function DigestDetail({ digest, isAdmin, onDelete, deleting }: {
         </div>
       )}
 
+      {/* Recommendations */}
       {digest.top_recommendations && digest.top_recommendations.length > 0 && (
-        <div>
-          <h3 className="text-xs uppercase tracking-wide text-[#6e6a68] font-medium mb-2">
+        <div className="bg-white rounded-xl border border-[#d2cecb] p-5">
+          <h3 className="text-xs uppercase tracking-wide text-[#6e6a68] font-medium mb-3">
             Recommendations
           </h3>
-          <ul className="space-y-2">
+          <ul className="space-y-3">
             {digest.top_recommendations.map((rec, i) => (
-              <li key={i} className="flex gap-2 text-sm text-[#0c0a08]">
-                <span className="text-solar font-bold flex-shrink-0">{i + 1}.</span>
+              <li key={i} className="flex gap-3 text-sm text-[#0c0a08]">
+                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-solar/20 text-[#0c0a08] text-xs font-bold flex items-center justify-center">
+                  {i + 1}
+                </span>
                 {rec}
               </li>
             ))}
@@ -175,21 +331,17 @@ function DigestDetail({ digest, isAdmin, onDelete, deleting }: {
         </div>
       )}
 
+      {/* Flagged Items */}
       {digest.flagged_items && digest.flagged_items.length > 0 && (
-        <div>
-          <h3 className="text-xs uppercase tracking-wide text-[#6e6a68] font-medium mb-2">
+        <div className="bg-white rounded-xl border border-[#d2cecb] p-5">
+          <h3 className="text-xs uppercase tracking-wide text-[#6e6a68] font-medium mb-3">
             Flagged Items
           </h3>
           <div className="space-y-2">
             {digest.flagged_items.map((item, i) => (
-              <div
-                key={i}
-                className="rounded-lg border border-red-100 bg-red-50 px-4 py-3"
-              >
+              <div key={i} className="rounded-lg border border-red-100 bg-red-50 px-4 py-3">
                 <div className="flex items-start justify-between gap-2">
-                  <span className="text-sm font-medium text-red-800">
-                    {item.description}
-                  </span>
+                  <span className="text-sm font-medium text-red-800">{item.description}</span>
                   <span className="text-sm font-mono text-red-700 flex-shrink-0">
                     ₹{item.amount.toLocaleString("en-IN")}
                   </span>
@@ -219,8 +371,6 @@ export function DigestPage() {
   const user = me.data?.user;
   const isAdmin = user?.role === "ADMIN";
 
-  // L10: use generateDigest.data as fallback so the detail panel shows
-  // the newly generated digest immediately (before refetch completes).
   const selected = selectedId
     ? ((digests.data ?? []).find((d) => d.id === selectedId) ?? generateDigest.data ?? null)
     : null;
@@ -240,7 +390,7 @@ export function DigestPage() {
       setShowModal(false);
       setSelectedId(digest.id);
     } catch {
-      // error is visible through mutation state
+      // error visible through mutation state
     }
   }
 
@@ -301,9 +451,7 @@ export function DigestPage() {
                       {statusBadge(d.status)}
                     </div>
                     {d.headline ? (
-                      <p className="text-sm text-[#0c0a08] line-clamp-2">
-                        {d.headline}
-                      </p>
+                      <p className="text-sm text-[#0c0a08] line-clamp-2">{d.headline}</p>
                     ) : (
                       <p className="text-sm text-[#6e6a68] italic">
                         {d.status === "PENDING" ? "Generating…" : "No headline"}

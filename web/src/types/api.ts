@@ -304,6 +304,16 @@ export type Notification = {
 
 export type DigestStatus = "PENDING" | "COMPLETED" | "FAILED";
 
+export interface DigestAggregated {
+  total_spend: number;
+  transaction_count: number;
+  pending_approvals: number;
+  policy_blocked_count: number;
+  top_categories: Array<{ category: string; amount: number }>;
+  top_departments: Array<{ department_id: string; department_name: string; amount: number }>;
+  top_merchants: Array<{ merchant: string; count: number; amount: number }>;
+}
+
 export interface Digest {
   id: string;
   org_id: string;
@@ -314,6 +324,7 @@ export interface Digest {
   body: string | null;
   top_recommendations: string[] | null;
   flagged_items: Array<{ description: string; amount: number; reason: string }> | null;
+  aggregated_input: DigestAggregated | null;
   created_at: string;
   updated_at: string;
 }
