@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     ARQ_REDIS_URL: str = "redis://redis:6379/1"
 
     GEMINI_API_KEY: str = ""
-    GEMINI_MODEL: str = "gemini-2.0-flash"
+    GEMINI_MODEL: str = "gemini-3.0-flash"
     GEMINI_TIMEOUT_SECONDS: int = 60
 
     S3_ENDPOINT_URL: str = ""
