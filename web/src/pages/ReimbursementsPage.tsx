@@ -11,6 +11,7 @@ import {
 } from "@/features/reimbursements/hooks";
 import { useDepartments } from "@/features/departments/hooks";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
+import { ReceiptUploader } from "@/components/ReceiptUploader";
 import type { Reimbursement, SpendCategory } from "@/types/api";
 
 // ---------------------------------------------------------------------------
@@ -55,6 +56,7 @@ function SubmitDialog({ onClose }: SubmitDialogProps) {
   const [category, setCategory] = useState<SpendCategory>("MEALS");
   const [description, setDescription] = useState("");
   const [deptId, setDeptId] = useState("");
+  const [receiptId, setReceiptId] = useState<string | undefined>(undefined);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -65,6 +67,7 @@ function SubmitDialog({ onClose }: SubmitDialogProps) {
         category,
         description,
         department_id: deptId || undefined,
+        receipt_id: receiptId,
       });
       onClose();
     } catch {
@@ -129,6 +132,11 @@ function SubmitDialog({ onClose }: SubmitDialogProps) {
               className="mt-1 w-full border border-[#d2cecb] rounded-[6px] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-solar/50 resize-none"
             />
           </label>
+
+          <ReceiptUploader
+            onReceiptReady={(id) => setReceiptId(id)}
+            onClear={() => setReceiptId(undefined)}
+          />
 
           {depts.length > 0 && (
             <label className="block">
