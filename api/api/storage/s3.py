@@ -52,7 +52,7 @@ def _get_client():
         region_name=settings.S3_REGION,
         config=Config(
             signature_version="s3v4",
-            addressing_style="path",  # required for self-hosted S3-compatible endpoints
+            s3={"addressing_style": "path"},  # required for self-hosted S3-compatible endpoints
         ),
     )
 
